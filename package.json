@@ -1,0 +1,14 @@
+{
+  "name": "righthon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "맞다톤 2026 — 개인 생산성 향상 에이전트 앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {}
+}
