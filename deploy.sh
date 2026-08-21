@@ -9,14 +9,18 @@ set -euo pipefail
 
 APP=righthon-hale
 RG=rg-matdathon
-ZIP=$(mktemp -t righthon).zip
+
+# mktemp -d 로 디렉터리를 잡고 그 안에 만든다.
+# `$(mktemp -t x).zip` 형태는 mktemp가 만든 원본 파일이 그대로 남아 매번 찌꺼기가 쌓인다.
+TMPDIR_=$(mktemp -d)
+ZIP="$TMPDIR_/righthon.zip"
+trap 'rm -rf "$TMPDIR_"' EXIT
 
 cd "$(dirname "$0")"
 
-# 배포 대상만 담는다. node_modules·.git은 넣지 않는다.
-zip -q -r "$ZIP" . \
-  -x '.git/*' -x 'node_modules/*' -x '.github/*' -x '.vscode/*' \
-  -x '*.sh' -x '.gitignore' -x 'README.md'
+# 배포 대상을 화이트리스트로 명시한다.
+# 제외 목록(-x) 방식은 새 파일이 생길 때마다 조용히 새어나가므로 쓰지 않는다.
+zip -q -r "$ZIP" public server.js package.json
 
 echo "▶ 배포 중..."
 az webapp deploy -n "$APP" -g "$RG" --src-path "$ZIP" --type zip -o none

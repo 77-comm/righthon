@@ -56,15 +56,20 @@
       $out.textContent = '…';
 
       try {
+        // 타임아웃이 없으면 버튼이 disabled인 채 브라우저 기본 한도까지 멈춘다.
+        // 시연 중에는 그게 "먹통"으로 보인다. 서버(60초)보다 5초 여유를 준다.
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({ message: text }),
+          signal: AbortSignal.timeout(65000)
         });
         const data = await res.json();
         $out.textContent = res.ok ? (data.reply || '(빈 응답)') : `오류 ${res.status}: ${data.error || ''}`;
       } catch (err) {
-        $out.textContent = `요청 실패: ${err.message}`;
+        $out.textContent = (err.name === 'TimeoutError' || err.name === 'AbortError')
+          ? '응답 시간이 초과됐습니다. 다시 시도해 주세요.'
+          : `요청 실패: ${err.message}`;
       } finally {
         $go.disabled = false;
       }
