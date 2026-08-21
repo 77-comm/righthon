@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>righthon</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0; padding: 2rem 1rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      line-height: 1.6; display: flex; justify-content: center;
+    }
+    main { width: 100%; max-width: 42rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+    p.sub { margin: 0 0 1.5rem; opacity: .65; font-size: .9rem; }
+    textarea {
+      width: 100%; min-height: 8rem; padding: .75rem; box-sizing: border-box;
+      font: inherit; border: 1px solid rgba(128,128,128,.4); border-radius: .5rem;
+      background: transparent; color: inherit; resize: vertical;
+    }
+    button {
+      margin-top: .75rem; padding: .6rem 1.2rem; font: inherit; font-weight: 600;
+      border: 0; border-radius: .5rem; cursor: pointer;
+      background: #2563eb; color: #fff;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    #out {
+      margin-top: 1.5rem; padding: 1rem; white-space: pre-wrap;
+      border: 1px solid rgba(128,128,128,.3); border-radius: .5rem;
+      min-height: 3rem; overflow-x: auto;
+    }
+    #out:empty { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>righthon</h1>
+    <p class="sub">종단 확인용 껍데기 — 입력 → Functions → 모델 → 출력</p>
+
+    <textarea id="input" placeholder="할 일을 아무렇게나 적어보세요."></textarea>
+    <button id="go">보내기</button>
+    <div id="out"></div>
+  </main>
+
+  <script>
+    const $in = document.getElementById('input');
+    const $go = document.getElementById('go');
+    const $out = document.getElementById('out');
+
+    $go.addEventListener('click', async () => {
+      const text = $in.value.trim();
+      if (!text) return;
+
+      $go.disabled = true;
+      $out.textContent = '…';
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        $out.textContent = res.ok ? (data.reply || '(빈 응답)') : `오류 ${res.status}: ${data.error || ''}`;
+      } catch (err) {
+        $out.textContent = `요청 실패: ${err.message}`;
+      } finally {
+        $go.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

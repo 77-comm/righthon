@@ -1,0 +1,8 @@
+node_modules/
+.env
+local.settings.json
+.DS_Store
+
+# 전역 gitignore가 .vscode/settings.json을 잡으므로 예외 지정
+# (Copilot instruction 파일 자동 로드 스위치가 들어 있다)
+!.vscode/settings.json
