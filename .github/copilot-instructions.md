@@ -44,9 +44,17 @@ omo -p "질문 한 줄. 답만. 레포 /Users/hale/GitHub/righthon"
 
 ## 아키텍처 (변경 금지)
 
-- 웹앱만. 네이티브·VM·AKS·Container Apps·App Service 단독 신설 금지.
-- **Azure Static Web Apps + 관리형 Functions** (`api/`). IaaS 금지.
-- 키는 Functions **Application settings**만. `index.html`·프론트 JS·채팅 로그에 키·endpoint 금지.
+> **2026-08-21 개정 — Static Web Apps는 이 구독에서 생성 불가라 App Service로 확정.**
+> `az staticwebapp create` → **`RequestDisallowedByAzure`**. 구독 정책 `Allowed resource deployment regions`
+> 허용값(`centralindia·uaenorth·koreacentral·indonesiacentral·malaysiawest`)과 SWA 지원 리전
+> (`Central US·East US 2·West US 2·West Europe·East Asia`)의 **교집합이 공집합**이다.
+> **SWA·`api/` 폴더·`staticwebapp.config.json`을 되살리려 하지 마.** 시간만 버린다.
+
+- 웹앱만. 네이티브·VM·AKS·Container Apps 금지.
+- **Azure App Service** (Linux, `NODE:22-lts`, F1 Free). IaaS 금지. ⚠️Node 20은 런타임 목록에서 제공 종료.
+- **`server.js` 단일 파일, 의존성 0개** (Node 22 내장 `fetch`). `npm install` 실패는 배포 실패 최다 원인이니
+  **패키지를 추가하지 마.** 정적 서빙 + `POST /api/chat` + `/healthz` 가 전부다.
+- 키는 App Service **애플리케이션 설정**만. `index.html`·프론트 JS·채팅 로그에 키·endpoint 금지.
 - `gpt-5-mini`는 `max_tokens` 금지 → **`max_completion_tokens`** (수천). 낮으면 HTTP 200에 `content` 빈 문자열.
 
 ## Azure: CLI 먼저, MCP는 조회만
@@ -55,9 +63,21 @@ omo -p "질문 한 줄. 답만. 레포 /Users/hale/GitHub/righthon"
 |---|---|---|
 | 생성·배포·설정·키 | **`az` / `azd`** (이미 설치됨) | MCP에 “만들어 줘” |
 | 구독에 뭐가 있나 | Azure MCP 또는 `az` | 서버 6개 동시 |
-| 로컬 SWA | VS Azure 확장. `swa`/`func` 글로벌 없음 | 없는 CLI를 설치부터 하지 마. 확장으로 |
+| 로컬 확인 | `node server.js` 후 `curl localhost:8080/healthz` | `swa`/`func` 설치하지 마. 이제 안 쓴다 |
 
-배포 문장: 「새 리소스 그룹 만들지 마. 이 레포를 기존 Students 구독 SWA에 붙여. 키는 Functions 설정에만.」
+**배포는 이미 만들어져 있다. 다시 만들지 마.**
+
+```bash
+./deploy.sh          # zip → az webapp deploy → 헬스체크. 약 40초
+```
+
+- 앱 `righthon-hale` / 플랜 `asp-matdathon`(F1 Free) / RG `rg-matdathon`, koreacentral
+- 라이브: **`https://righthon-hale.azurewebsites.net`** (2026-08-21 종단 검증 완료)
+- 앱 설정 6개 주입 완료(`AZURE_OPENAI_*` 4 + `SCM_DO_BUILD_DURING_DEPLOYMENT=false` + `WEBSITE_NODE_DEFAULT_VERSION=~22`).
+  **다시 넣지 마.** 값을 stdout에 찍지도 마.
+- GitHub Actions 쓰지 마 — CI 왕복 2~3분이라 30분 배포 리듬에 안 맞고 실패 지점만 는다.
+- ⚠️ **`az webapp deploy`가 `RuntimeSuccessful`을 반환해도 동작 증명이 아니다.**
+  배포 후 반드시 `/healthz` + 실제 `/api/chat` 200을 확인할 것.
 
 ## MCP — 적게 (컨텍스트 부패)
 
