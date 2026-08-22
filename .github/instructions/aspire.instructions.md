@@ -4,32 +4,37 @@ applyTo: "**"
 
 # Aspire — 쓰지 마라
 
-**결론: 안 쓴다.** 서비스 하나·DB/큐 없음. Aspire 가치는 다중 오케스트레이션이고, 공식 배포 경로는 기존 B1 zip URL을 버린다.
+**결론: 안 쓴다.** AppHost·`aspire deploy`는 금지. 관찰 가능성은 App Insights(+ MAF OTel)로 채운다.
 
-현장 한 줄: "키노트 권고는 여러 서비스를 묶을 때다. 우리는 프로세스 하나다. 필수·심사표에 Aspire가 없고, Azure 항목은 형식적 추가를 감점한다."
+현장 한 줄: "키노트 권고 ≠ 심사표. 필수·배점을 쓴 사람이 Justin Yoo이고 Aspire는 없다. 25%의 오케스트레이션은 MAF 에이전트이지 Aspire가 아니다."
 
-## 확인됨 (2026-08-22)
+## 재조사 2026-08-22 11:05 — 왜 안 뒤집혔는가
 
-- 명칭: ".NET Aspire" → **Aspire**. 현행 **13.5.0**(2026-08-18). 지원은 이 버전만.
-- Python: 1등 시민. `AddPythonApp` / `AddUvicornApp`(FastAPI). AppHost는 **C# 또는 TypeScript**(TS는 13.4 GA). C# AppHost만 .NET 10 SDK. TS는 Node 20.19+/22.13+/24+(C# 프로젝트 불필요).
-- CLI: `brew install --cask microsoft/aspire/aspire` 또는 `curl -sSL https://aspire.dev/install.sh | bash` → `aspire --version`.
-- `azd`/`aspire deploy`는 AppHost 환경 리소스를 따른다. `AddAzureAppServiceEnvironment`면 App Service로도 간다. **기본은 신규 RG·Plan(문서: Linux P0V3)·ACR·컨테이너·새 웹앱**. 기존 `righthon-hale` B1 zip을 재사용하지 않는다. App Service 경로는 **Preview**.
-- 로컬만: `aspire init` → `aspire run`은 배포와 분리 가능(공식 점진 도입).
+- **Q3(확인됨, 뒤집힘 없음).** 공식 MAF↔Aspire는 `Aspire.Hosting.AgentFramework.DevUI`(.NET prerelease, 다중 에이전트 DevUI). Python은 `agent-framework-devui`(Aspire 없음). Copilot SDK↔Aspire **못 찾음**. MAF 관측 공식 경로 = OTel → 로컬 Aspire Dashboard **standalone** 또는 Azure App Insights. AppHost 불필요.
+- **Q4(확인됨).** 필수 = 웹앱+MAF+Copilot SDK+Azure. 심사표·Discussions(#1,#2,#7–#12)·랜딩(ticketa)에 Aspire **없음**. 키노트 슬라이드 **못 찾음**. 필수·배점 커밋 작성자 = Justin Yoo(03:21–03:23 KST). 10:50 이후 공식 레포 커밋 0. 무대 구두 강조는 **불확실**.
+- 기존 유지(확인됨): Aspire **13.5**. `azd`/`aspire deploy`는 신규 P0V3·ACR·컨테이너. 기존 B1 zip URL을 버린다.
 
-## 불확실
+## 관찰 가능성 — Azure 18% 수확 (Aspire와 무관)
 
-- `AddUvicornApp`이 App Service 자동 타겟인지: 공식은 **project + Dockerfile**만 명시.
-- 기존 B1을 `AsExisting`으로 붙이기: 13.5에 계열 API는 있으나 이 레포로 미검증.
+채점: "반복 가능한 배포, 안정성 및 **관찰 가능성**" / "필요 이상의 서비스를 **형식적으로** 추가하면 감점."
 
-## 심사
+| 수단 | 판정 |
+|---|---|
+| App Insights (App Service Python 자동계측 `ApplicationInsightsAgent_EXTENSION_VERSION=~3` 또는 MAF `configure_azure_monitor`) | **정당.** 칸 이름과 일치. 리소스 1~2개(App Insights±Log Analytics)이나 에이전트 스팬이 보이면 형식적이 아님. 비용: Log Analytics **계정당 5GB/월 무료**. 소요 ~5–15분. **앱 200 확인 뒤에** 붙여라. TRD에 적을 것. |
+| Aspire Dashboard standalone (`docker run mcr.microsoft.com/dotnet/aspire-dashboard:latest`, UI :18888 / OTLP :4317) | **확인됨·로컬만.** MAF Python 문서 경로. AppHost 없음. Azure에 올리면 형식적 추가. |
+| `opentelemetry-instrumentation-fastapi`만 | **확인됨.** 오케스트레이션 없이 동일 OTel. 채점용 백엔드는 App Insights. |
+| Aspire AppHost / ACA 대시보드 / 큐·Redis | **금지.** 그게 "형식적 추가". |
 
-필수 = 웹앱 + Microsoft Agent Framework + GitHub Copilot SDK + Azure 배포. Aspire **없음**.
-Azure 18%: "필요 이상의 서비스를 형식적으로 추가한 경우에는 감점." 혁신 5%는 생산성 AI이지 인프라 가점이 아님. → **가점 근거 없음. 시간낭비.**
+빈 App Insights만 만들고 트레이스가 없으면 감점. `/healthz`만으로도 관찰 가능성은 주장 가능하나, MAF 스팬이 있으면 18%가 단단해진다.
+
+## 로컬만 `aspire run`? — 가능, 가치 없음
+
+- **가능(확인됨).** `aspire init`→`aspire run`은 배포와 분리. `./deploy.sh` 유지.
+- 산출물: `aspire.config.json` + TS면 `aspire-apphost/` **및 루트 `package.json`에 `aspire:*` 스크립트**(모듈 설정은 안 건드림) / C#이면 `apphost.cs`(.NET 10 SDK). 현재 zip 화이트리스트엔 AppHost 미포함. 소요 10–20분(Docker 없음 30–60분+).
+- 레포만 보면 심사 에이전트가 "Aspire 씀"을 **인식할 수는 있음**. 점수는 배포·MAF 깊이라 연극. 시간 대비 점수 없음.
 
 ## 비상 (필수로 바뀌면)
 
-배포는 `./deploy.sh` 유지. `aspire deploy`/`azd up` 금지(URL·SKU 파괴).
-`brew install --cask microsoft/aspire/aspire` → `aspire init --language typescript --non-interactive` → `aspire add python` → AppHost에 `AddUvicornApp("api",".","main:app").WithExternalHttpEndpoints()` → `aspire run`(로컬 대시보드만).
-깨지는 지점: CLI/SDK 설치, `aspire init`이 루트 `package.json` 변경, zip 화이트리스트 밖 파일, Preview가 새 P0V3 생성.
+`aspire deploy` 금지. 최소 인정: 로컬 dashboard 컨테이너 + `OTEL_EXPORTER_OTLP_ENDPOINT`. AppHost 강제 시에만 `aspire init --language typescript --non-interactive`.
 
-출처: https://aspire.dev/whats-new/aspire-13-5/ · https://aspire.dev/support/ · https://aspire.dev/integrations/frameworks/python/ · https://aspire.dev/get-started/install-cli/ · https://aspire.dev/get-started/prerequisites/ · https://aspire.dev/get-started/add-aspire-existing-app/ · https://aspire.dev/deployment/azure/app-service/ · https://learn.microsoft.com/azure/app-service/quickstart-dotnet-aspire · https://github.com/matdaaiga-kr/matdathon-2026/blob/main/README.md · https://github.com/matdaaiga-kr/matdathon-2026/blob/main/judgement/judgement-criteria.md
+출처: https://github.com/matdaaiga-kr/matdathon-2026/blob/main/README.md · https://github.com/matdaaiga-kr/matdathon-2026/blob/main/judgement/judgement-criteria.md · https://learn.microsoft.com/agent-framework/agents/observability · https://learn.microsoft.com/agent-framework/integrations/by-component/ui/devui/ · https://aspire.dev/dashboard/standalone/ · https://aspire.dev/get-started/add-aspire-existing-app/ · https://learn.microsoft.com/azure/app-service/monitor-app-service · https://azure.microsoft.com/pricing/details/monitor/ · https://ticketa.co/event/jxxdbwmn

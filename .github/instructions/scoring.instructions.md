@@ -40,7 +40,14 @@ applyTo: "**"
 - ✅ 우리가 이미 가진 것이 그대로 점수다: **`./deploy.sh`(반복 가능한 배포)** ·
   **`/healthz`(관찰 가능성)** · **B1 + alwaysOn(안정성)** · 앱 설정으로 비밀 분리
 - ⇒ **TRD에 이 셋을 명시하라.** 안 적으면 심사 에이전트가 모른다
-- ⇒ **Aspire·Container Apps·새 서비스를 추가하지 마라.** 문구가 직접 감점이라고 한다
+- ⇒ **Aspire·Container Apps·큐·Redis를 추가하지 마라.** 문구가 직접 감점이라고 한다
+
+🎯 **여기서 더 얻을 수 있는 것 — Application Insights** (앱이 200을 내고 난 뒤에)
+채점 문구에 **"관찰 가능성"** 이 명시돼 있다. App Insights는 **칸 이름과 정확히 일치**하므로
+"형식적 추가"가 아니다. `ApplicationInsightsAgent_EXTENSION_VERSION=~3`(App Service 자동계측)
+또는 MAF `configure_azure_monitor`. Log Analytics는 **계정당 월 5GB 무료**, 소요 **5~15분**.
+🔴 **빈 App Insights만 만들고 트레이스가 없으면 오히려 감점.** MAF 에이전트 스팬이 보여야 한다.
+⚠️ **순서를 지켜라 — 앱이 먼저 200을 내고, 그 다음에 붙인다.** 상세: `aspire.instructions.md`
 
 ## 5️⃣ 12% + 6️⃣ 6% — 값싸게 얻는 18%
 
