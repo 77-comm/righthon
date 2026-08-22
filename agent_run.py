@@ -223,7 +223,14 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
     import time
 
-    if time.time() >= _MAF["cooldown_until"]:
+    # CLI 런타임이 있을 때만 MAF를 시도한다(없으면 스폰 시도로 시간만 태운다).
+    cli_root = Path(os.environ.get("COPILOT_CLI_EXTRACT_DIR", "/home/copilot-cli"))
+    cli_ok = Path("/tmp/copilot-cli/copilot").is_file() or any(
+        (cli_root / p).exists()
+        for p in ("copilot", "bin/copilot", "copilot-linux", "bin/copilot-linux")
+    )
+    try_maf = os.environ.get("TRY_MAF") == "1" or cli_ok
+    if try_maf and time.time() >= _MAF["cooldown_until"]:
         try:
             text = await asyncio.wait_for(
                 asyncio.to_thread(_maf_worker, message, instructions), timeout=_MAF_TIMEOUT
