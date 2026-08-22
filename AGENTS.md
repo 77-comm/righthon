@@ -1,5 +1,9 @@
 # righthon — 현장 메모리 (2026-08-22)
 
+> 🔴 **10:50 필수요소 공개로 스택이 바뀌었다. 아래 「스택」 서술(Node·의존성 0)은 폐기.**
+> **`.github/instructions/stack.instructions.md`를 먼저 읽어라.** 그 파일이 이 문서를 이긴다.
+> 살아 있는 절: **Azure 리소스 · 실측 함정 · 공식 공지 · 제출 이슈 3종.**
+
 **라이브(제출 URL):** https://righthon-hale.azurewebsites.net  ← 지금 살아 있음.
 **배포:** `./deploy.sh` 한 줄. zip(`public` `server.js` `package.json`) → `az webapp deploy` → `/healthz`. 약 40초. GitHub Actions 없음(CI 왕복 2~3분 회피).
 **스택:** App Service Linux **B1 Basic + alwaysOn** · `NODE:22-lts` · `node:http` 단일 프로세스 · **의존성 0** · deployment `gpt-5-mini`.
