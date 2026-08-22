@@ -53,7 +53,7 @@ def _azure_provider() -> dict | None:
     if not key or not endpoint:
         return None
     host = endpoint.split("://", 1)[-1].rstrip("/").split("/", 1)[0]
-    return {"type": "azure", "base_url": host, "api_key": key}
+    return {"type": "azure", "base_url": f"https://{host}", "api_key": key}
 
 
 TOOLS = [
