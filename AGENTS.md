@@ -6,7 +6,8 @@
 
 **라이브(제출 URL):** https://righthon-hale.azurewebsites.net  ← 지금 살아 있음.
 **배포:** `./deploy.sh` 한 줄. zip(`public` `server.js` `package.json`) → `az webapp deploy` → `/healthz`. 약 40초. GitHub Actions 없음(CI 왕복 2~3분 회피).
-**스택:** App Service Linux **B1 Basic + alwaysOn** · `NODE:22-lts` · `node:http` 단일 프로세스 · **의존성 0** · deployment `gpt-5-mini`.
+**스택:** App Service Linux **B1 Basic + alwaysOn** · koreacentral · deployment `gpt-5-mini`.
+🔴 ~~`NODE:22-lts` · 의존성 0~~ **폐기** — 필수요소가 MAF+Copilot SDK를 강제 → **Python**. `stack.instructions.md`.
 **레포:** `77-comm/righthon` · `main` · 당일 베이스 `92baf6e`.
 **Azure (전부 생성됨·재생성 금지):** RG `rg-matdathon` / 플랜 `asp-matdathon` / 웹앱 `righthon-hale` / 모델 `aif-matdathon-hale` · koreacentral.
 앱 설정 6개 주입 완료: `AZURE_OPENAI_ENDPOINT` `AZURE_OPENAI_KEY` `AZURE_OPENAI_DEPLOYMENT` `AZURE_OPENAI_API_VERSION`(=2025-04-01-preview) `SCM_DO_BUILD_DURING_DEPLOYMENT=false` `WEBSITE_NODE_DEFAULT_VERSION=~22`.
@@ -21,13 +22,15 @@
 5. **`%2e%2e` 방어는 `url.pathname`이 퍼센트 디코딩을 안 해서 성립한다.** 경로에 `decodeURIComponent`를 씌우면 `..`가 살아나 경로 이탈이 열린다.
 6. **콜드스타트는 B1+alwaysOn으로 제거됨**(F1일 때 27.6초). 오늘 F1으로 내리면 심사 첫 요청이 타임아웃 난다. SKU 내리지 마.
 
-## 오늘 제약
+## 오늘 제약 (10:50 공개분 반영)
 
-- 주제: 개인 생산성 향상 에이전트 앱. 세부는 당일 공개.
-- **17:00 제출 마감. 초과 = 자동 탈락.** 제출물 = 위 Azure URL.
-- 기능 **3개 이하**. **15:00–15:40 기능 동결.** 마지막 push **16:30**.
-- **30분마다** `./deploy.sh`. 링크가 살아야 채점된다.
-- 새 프레임워크·새 npm 패키지·새 Azure 리소스를 "더 좋아서" 들이지 마. `dependencies: {}` 유지. Node 20은 런타임 제공 종료.
+- 주제: **개인 생산성 향상 앱** (공식 README 표기. 메일의 "에이전트 앱"이 아니다)
+- 🔴 **16:30 제출 마감. 초과 = 자동 탈락.** (종전 17:00은 **틀렸다** — 08-21 18:13 갱신됨)
+- 필수요소: **Microsoft Agent Framework + GitHub Copilot SDK + Azure 배포**
+- 기능은 **적게, 깊게.** 배점이 *"기능의 수보다 활용의 깊이"* → `scoring.instructions.md`
+- **14:00 기능 동결 · 15:30 마지막 push · 16:00까지 제출 완료**(마감 30분 여유)
+- **30분마다 배포 확인.** 링크가 살아야 채점된다
+- 🔴 **새 Azure 서비스를 "더 좋아서" 추가하지 마 — 배점이 직접 감점한다**
 
 ## 명령 (복사해서 써라)
 
@@ -62,12 +65,14 @@ curl -sS localhost:8080/healthz
 |---|---|
 | `public/index.html` | 프론트. 빌드 없음, 인라인 JS. `POST /api/chat`만 호출. |
 | `server.js` | `node:http` 단일 프로세스. `public/` 정적 서빙 + `POST /api/chat` + `GET /healthz`. 의존성 0. |
-| `package.json` | `start=node server.js`, `dependencies: {}`. 패키지 추가 금지. |
+| `package.json` | 🔴 **폐기**(Node용). Python은 `requirements.txt`. |
 | `deploy.sh` | 화이트리스트 zip → 배포 → 헬스. 제외목록(`-x`)으로 바꾸지 마(새 파일이 새어나감). |
 | `AGENTS.md` | 이 파일. Copilot CLI·VS Code Copilot이 읽는 당일 진실. |
-| `.github/copilot-instructions.md` | 08-21 초안. F1 등 낡은 줄은 여기로 덮어쓴다. **그 파일은 수정하지 마.** |
+| `.github/copilot-instructions.md` | 08-21 초안. **F1·Node·SWA 서술 전부 폐기.** |
+| `.github/instructions/*.md` | 🎯 **자동 첨부 당일 정본.** scoring → stack → aspire 순 |
+| `PRD.md` · `TRD.md` | 🎯 **AI 심사 Source of Truth.** 채점 대상 문서 |
 
-기능은 `public/index.html`과 `server.js`의 기존 경로에만 붙여라. 루트 정적 파일·새 서버 프레임워크·`npm install`은 제출을 죽인다.
+🔴 이 절의 Node 전제(`server.js`·`npm`)는 폐기. **정적 파일은 `public/`에만** 두는 규칙은 유효하다.
 
 ## 공식 공지 — 여기가 정본이다
 
@@ -105,6 +110,9 @@ AI 심사 에이전트가 자동 심사. 루트 `PRD.md`(제품)·`TRD.md`(기�
 🔴 로그인·회원가입·계정·초대·권한을 요구하면 전 평가항목 최저점(1점). 인증 붙이지 마라.
 레포는 **public**이어야 한다 (`77-comm/righthon` 08-22 08:05 전환 완료).
 
-**11:00에 다시 열어라** (08-22 07:50 기준 비어 있음):
-- [ ] README 필수요소 *"반드시 [추후 안내] 사용할 것"* 본문
-- [ ] `judgement/judgement-criteria.md` 심사 기준 본문 (지금 제목만)
+**✅ 11:00 공개분 확인 완료**
+- [x] 필수요소 → **Microsoft Agent Framework + GitHub Copilot SDK** → `stack.instructions.md`
+- [x] 심사 기준 → **7항목 배점 공개** → `scoring.instructions.md`
+
+hale Instruction: 유저스틴의 키노트 참조할 것. 다른 모델로 검증 및 왜 이 결과가 나왔는지 체크할 필요 존재. 
+메모리 적극적으로 활용할 것. 
