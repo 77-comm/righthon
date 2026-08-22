@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+# MAF+Copilot SDK 리눅스 wheel 동봉분 — deploy-py.sh가 조립, zip에만 들어간다
+packages/
 node_modules/
 .env
 local.settings.json

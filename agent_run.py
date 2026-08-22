@@ -146,8 +146,11 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
             default_options=options,
             tools=[__import__("board", fromlist=["fetch_macro"]).fetch_macro],
         )
+        # CLI 런타임 첫 기동이 길어지면 폴백으로 넘어가게 상한을 건다.
+        import asyncio
+
         async with agent:
-            result = await agent.run(message)
+            result = await asyncio.wait_for(agent.run(message), timeout=50)
         text = (getattr(result, "text", None) or str(result) or "").strip()
         if not text:
             raise RuntimeError("empty agent content")

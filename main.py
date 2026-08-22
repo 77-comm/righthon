@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+ROOT = Path(__file__).resolve().parent
+
+# MAF+Copilot SDK는 Oryx pip가 아니라 zip에 동봉된다 (sdk==1.0.2 핀이 PyPI에서 소멸).
+_PKG = ROOT / "packages"
+if _PKG.is_dir() and str(_PKG) not in sys.path:
+    sys.path.insert(0, str(_PKG))
+
 from agent_run import run_agent
 from board import build_board
 
-ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
 
 app = FastAPI(title="Perp_Machine", docs_url=None, redoc_url=None)

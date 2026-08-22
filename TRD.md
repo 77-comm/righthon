@@ -10,7 +10,8 @@
 | URL | https://righthon-hale.azurewebsites.net | https://righthon-py.azurewebsites.net |
 | 런타임 | `NODE:22-lts` | `PYTHON:3.12` FastAPI |
 | 모델 | Azure `gpt-5-mini` 직접 | **같은 deployment.** `gpt-5.6-luna`는 이 구독 쿼터 0 |
-| 도구 | 없음 | `fetch_macro` — Azure tool_calls 루프. MAF 패키지는 B1 pip가 502 |
+| MAF+SDK | 없음 | **`GitHubCopilotAgent`(BYOK azure) — packages/ 동봉으로 탑재.** 실패 시 Azure tool loop 폴백 |
+| 도구 | 없음 | `fetch_macro` — MAF tools= 및 Azure tool_calls 양쪽 |
 | 스트리밍 | 없음 | 아직 JSON. SSE는 다음 |
 | GitHub 토큰 | 없음 | **넣지 않음** (넣었다가 삭제) |
 
@@ -57,9 +58,9 @@ uvicorn
 
 | 필수 | 지금 |
 |---|---|
-| Microsoft Agent Framework | 코드에 `GitHubCopilotAgent` 경로 있음. **B1 Oryx pip가 502라 패키지 미설치.** import 실패 시 Azure tool loop |
-| GitHub Copilot SDK | 동일. GitHub 토큰은 앱 설정에 **두지 않음** |
-| 도구 호출 | `board.fetch_macro` + Azure `tool_calls` |
+| Microsoft Agent Framework | `GitHubCopilotAgent` + Azure BYOK. **pip 불가**(래퍼 핀 `github-copilot-sdk==1.0.2`가 PyPI 소멸) → 리눅스 cp312 wheel을 `packages/`로 zip 동봉(sdk 1.0.4, deploy-py.sh가 조립) |
+| GitHub Copilot SDK | `github-copilot-sdk==1.0.4` 동봉. GitHub 토큰은 앱 설정에 **두지 않음** (BYOK) |
+| 도구 호출 | `board.fetch_macro` — MAF `tools=` + 폴백 Azure `tool_calls` 양쪽 |
 | 스트리밍 | **미구현** (JSON POST) |
 | Azure | B1 + alwaysOn. `/healthz` |
 

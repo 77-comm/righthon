@@ -35,19 +35,14 @@ MAF 에이전트이면서 Copilot SDK를 쓰는 공식 래퍼다. 여기에 **Az
 
 ## 패키지 — 정확히 이것만
 
-> 🔴 **14:25 실측 갱신 — 이 절대로 하면 배포가 죽는다.**
-> `agent-framework==1.15.0`(+`-github-copilot`)을 requirements.txt에 넣고 zip 배포하면
-> **B1 Kudu의 Oryx pip가 502로 죽고 사이트가 503으로 내려간다** (14:0x대 2회 실측, 커밋 8cd764d).
-> 그래서 현재 배포본 requirements는 fastapi/uvicorn/gunicorn 3개뿐이고,
-> `GitHubCopilotAgent` 경로는 ImportError → **Azure REST tool_calls 루프 폴백만 살아 있다.**
->
-> ⚠️ **이 상태는 필수요소("반드시 MAF+Copilot SDK 사용") 미충족 리스크다.** 포기 확정이 아니라 미해결.
-> **다시 시도할 때 Oryx에 pip를 시키지 마라.** 남은 경로:
-> 1. fedora-ts(리눅스 x86_64)에서 `pip install --target` 으로 site-packages를 만들어 **zip에 동봉** + startup에서 PYTHONPATH
-> 2. 맥에서 `pip download --platform manylinux2014_x86_64 --only-binary=:all:` 로 wheel 동봉
-> 3. `SCM_COMMAND_IDLE_TIMEOUT=1800` + `az webapp deploy --async true` (502가 단순 빌드 타임아웃일 때만)
->
-> 아래 원문 패키지 목록은 "성공 시 목표"로 읽어라. 그대로 다시 넣고 zip 배포부터 하지 마라.
+> 🔴 **14:45 원인 정정 — B1이 아니라 PyPI가 문제다.**
+> 래퍼 1.0.3이 핀한 `github-copilot-sdk==1.0.2`가 **PyPI에서 소멸**(1.0.4+만 생존) →
+> requirements.txt에 MAF를 넣으면 **어떤 pip에서도 ResolutionImpossible** → Oryx 빌드 사망(503)은 그 증상.
+> **해법(적용됨):** `deploy-py.sh`가 리눅스 cp312 wheel을 `packages/`에 조립해 zip 동봉.
+> `agent-framework-core==1.15.0` + `github-copilot-sdk==1.0.4` 정상 설치, 래퍼는 `--no-deps`.
+> 맥 venv에서 1.0.4+래퍼 조합 import·생성 검증 완료. `main.py`가 sys.path에 packages/를 얹는다.
+> **requirements.txt에는 fastapi/uvicorn/gunicorn 3개만 남긴다(Oryx 담당). MAF를 되넣지 마라.**
+> 메타패키지 `agent-framework==1.15.0`([all] 익스트라)도 크로스플랫폼 해석이 깨진다 — **core만** 써라.
 
 ```
 agent-framework==1.15.0

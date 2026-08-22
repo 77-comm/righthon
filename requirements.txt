@@ -1,3 +1,6 @@
 fastapi==0.116.1
 uvicorn==0.35.0
 gunicorn==23.0.0
+# MAF+Copilot SDK(agent-framework-core 1.15.0 · agent-framework-github-copilot 1.0.3 ·
+# github-copilot-sdk 1.0.4)는 packages/ 로 zip에 동봉된다 — deploy-py.sh 참조.
+# 래퍼가 핀한 sdk==1.0.2가 PyPI에서 사라져 pip로는 어디서도 설치가 안 된다.

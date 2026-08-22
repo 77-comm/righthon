@@ -22,7 +22,7 @@
 4. **정적 파일은 `public/`에만.** 루트에 두면 정적 루트가 레포 루트가 되어 `/server.js`가 200으로 소스를 뱉는다(실측).
 5. **`%2e%2e` 방어는 `url.pathname`이 퍼센트 디코딩을 안 해서 성립한다.** 경로에 `decodeURIComponent`를 씌우면 `..`가 살아나 경로 이탈이 열린다.
 6. **콜드스타트는 B1+alwaysOn으로 제거됨**(F1일 때 27.6초). 오늘 F1으로 내리면 심사 첫 요청이 타임아웃 난다. SKU 내리지 마.
-7. **(14:25) MAF 패키지를 Oryx로 설치하면 B1 배포가 죽는다.** `agent-framework` 계열을 requirements.txt에 넣은 zip 배포 → Kudu 502 → 사이트 503 (2회 실측). 현재 righthon-py는 경량 requirements + Azure tool_calls 폴백으로 살아 있고 `GitHubCopilotAgent`는 죽은 경로다. **재시도는 Oryx pip 말고 wheel/site-packages 동봉으로** (`stack.instructions.md` 갱신분 참조). 필수요소 미충족 리스크가 열려 있다 — 제출 전 해소하거나 제출 URL 판단에 반영할 것.
+7. **(14:45 원인 정정) MAF pip 실패의 진범은 B1이 아니라 PyPI다.** 래퍼 `agent-framework-github-copilot==1.0.3`이 핀한 `github-copilot-sdk==1.0.2`가 **PyPI에서 사라져**(1.0.4+만 생존) 어떤 환경에서도 pip 해석이 실패한다. Oryx 502는 그 증상. 해법(적용됨): 래퍼는 `--no-deps`, SDK는 `1.0.4`로 리눅스 cp312 wheel을 `packages/`에 조립해 zip 동봉 — `deploy-py.sh`가 자동 수행, 맥 venv에서 1.0.4+래퍼 조합 import 검증 완료. **requirements.txt에 MAF를 다시 넣지 마라.**
 
 ## 오늘 제약 (10:50 공개분 반영)
 
