@@ -16,9 +16,21 @@ applyTo: "**"
 **필수요소: Microsoft Agent Framework + GitHub Copilot SDK + Azure 배포.** Node로는 불가(MAF에 JS 없음).
 `GitHubCopilotAgent` + **Azure BYOK**로 두 요건 동시 충족, GitHub 토큰 불필요.
 
-- 플랜 **B1 Basic + alwaysOn**. F1으로 내리지 마(콜드스타트 27.6초).
-- 배포는 `./deploy.sh`만. 리소스·앱설정 재생성/재주입 금지. 키 stdout 금지.
-- SWA 불가. `dependencies: {}` 유지. `max_tokens` 금지 → `max_completion_tokens` 4000.
-- 정적 파일은 `public/`만. `url.pathname`에 decode 추가하지 마.
+## 여전히 유효한 것
+
+- 플랜 **B1 Basic + alwaysOn**. F1으로 내리지 마(콜드스타트 27.6초 실측).
+- 리소스·앱설정 **재생성/재주입 금지**. 키를 stdout에 찍지 마.
+- **SWA 불가**(구독 정책, `RequestDisallowedByAzure`). 되돌리려 하지 마.
+- 정적 파일은 **`public/`만**. 루트를 서빙하면 소스가 노출된다.
+- **`max_tokens` 금지**(gpt-5 계열이 거부). `temperature`·`top_p`도 미지원.
+- 배포 후 **`RuntimeSuccessful`은 동작 증명이 아니다** — 실제 요청 200까지 확인.
+- **인증(로그인·회원가입) 붙이면 전 평가항목 최저점 1점.**
+
+## 🔴 폐기된 것 (Node 시대 규칙)
+
+- ~~`dependencies: {}` 유지~~ → **필수요소가 SDK 2개를 강제한다.** 의존성 0개는 이제 실격이다.
+- ~~`./deploy.sh`만~~ → 그건 Node/zip 전용이다. **Python은 `SCM_DO_BUILD_DURING_DEPLOYMENT=true`**
+  + `requirements.txt` + startup 지정이 필요하다. `stack.instructions.md` 참조.
+- ~~`max_completion_tokens` 4000~~ → MAF 경유로 이 키가 통과하는지 **미확인**. 안 되면 한도를 생략하라.
 
 이유·명령 전문은 `AGENTS.md`. 이 파일은 자동첨부되는 어제 초안을 덮는 가드다.
