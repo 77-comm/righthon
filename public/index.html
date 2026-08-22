@@ -62,6 +62,16 @@
     .c strong { color: var(--cred); } .d strong { color: var(--debt); }
     .ask { align-self: start; background: transparent; border: 1px solid var(--ink); font: inherit; font-size: .78rem; padding: .28rem .55rem; cursor: pointer; }
     .ask:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+    article.card { cursor: pointer; }
+    article.card:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .pb-hint { font-size: .7rem; color: var(--muted); margin: 0; }
+    .pb { border-top: 1px dashed var(--line); padding-top: .5rem; display: grid; gap: .4rem; font-size: .78rem; cursor: auto; }
+    .pb .cash { margin: 0; font-size: .84rem; font-weight: bold; }
+    article.tilt-creditor .pb .cash { color: var(--cred); }
+    article.tilt-debtor .pb .cash { color: var(--debt); }
+    .pb h3 { margin: 0; font-size: .7rem; letter-spacing: .04em; color: var(--muted); }
+    .pb ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .25rem; }
+    .pb .pb-disc { margin: 0; font-size: .68rem; color: var(--muted); }
     .chat { margin: 1.6rem 0 1rem; border-top: 1px solid var(--line); padding-top: 1rem; }
     label { display: block; font-size: .85rem; margin-bottom: .3rem; }
     textarea { width: 100%; min-height: 5.2rem; padding: .65rem; border: 1px solid var(--line); background: var(--card); font: inherit; }
@@ -215,6 +225,15 @@
       if (b.peer_median != null) html += '<b style="left:' + pct(b.peer_median) + '"></b>';
       return html + '</div>';
     };
+    const pbHtml = (c) => {
+      const pb = c.playbook;
+      if (!pb || !pb.cash) return '<p class="pb-disc">플레이북 준비 중 — 데이터가 갱신되면 표시된다.</p>';
+      let html = '<p class="cash">' + clean(pb.cash) + '</p>';
+      if (pb.do && pb.do.length) html += '<h3>무엇을 하나</h3><ul>' + pb.do.map((s) => '<li>' + clean(s) + '</li>').join('') + '</ul>';
+      if (pb.debt && pb.debt.length) html += '<h3>빚이 있다면</h3><ul>' + pb.debt.map((s) => '<li>' + clean(s) + '</li>').join('') + '</ul>';
+      if (pb.disclaimer) html += '<p class="pb-disc">' + clean(pb.disclaimer) + '</p>';
+      return html;
+    };
     const cardHtml = (c) => {
       const m = c.metrics, rr = m.real_rate;
       const extras = ['policy_rate','inflation','gdp_growth','productivity','gov_debt'].filter((k) => m[k]).map((k) => {
@@ -226,7 +245,7 @@
       const role = c.role === 'buffer' ? ' · 완충' : '';
       const tilt = (c.sides && c.sides.tilt) || 'unknown';
       const tiltTag = TILT_KO[tilt] ? '<span class="tilt-tag tilt-' + tilt + '">' + tilt + ' · ' + TILT_KO[tilt] + '</span>' : '';
-      return '<article class="card ' + (c.role || '') + (TILT_KO[tilt] ? ' tilt-' + tilt : '') + '" role="listitem">' +
+      return '<article class="card ' + (c.role || '') + (TILT_KO[tilt] ? ' tilt-' + tilt : '') + '" role="listitem" tabindex="0" aria-expanded="false" aria-controls="pb-' + c.id + '" aria-label="' + c.name + ' 카드. Enter로 플레이북 열고 닫기">' +
         '<h2>' + c.name + role + '<span class="iso">' + c.id + '</span></h2>' +
         tiltTag +
         '<div class="hero" title="' + TIPS.real_rate + '"><span class="vv">' + fmt(rr.value, '%') + '</span>' +
@@ -237,7 +256,9 @@
         '<div class="rows">' + extras + '</div>' +
         '<div class="dual"><p class="c"><strong>채권자 creditor</strong>' + clean(c.sides.creditor) +
         '</p><p class="d"><strong>채무자 debtor</strong>' + clean(c.sides.debtor) + '</p></div>' +
-        '<button type="button" class="ask" data-q="' + c.name + ' 실질금리" aria-label="' + c.name + ' 실질금리를 질문창에 넣기">이 나라로 묻기</button></article>';
+        '<button type="button" class="ask" data-q="' + c.name + ' 실질금리" aria-label="' + c.name + ' 실질금리를 질문창에 넣기">이 나라로 묻기</button>' +
+        '<p class="pb-hint" aria-hidden="true">▸ 카드를 누르면 플레이북 — 이 숫자에서 무엇을 하나</p>' +
+        '<div class="pb" id="pb-' + c.id + '" hidden role="region" aria-label="' + c.name + ' 플레이북">' + pbHtml(c) + '</div></article>';
     };
 
     const sortCards = (cards) => [...cards].sort((a, b) => {
@@ -272,11 +293,32 @@
       }
     };
 
+    const togglePb = (card) => {
+      const pb = card.querySelector('.pb');
+      const hint = card.querySelector('.pb-hint');
+      if (!pb) return;
+      const open = pb.hidden;
+      pb.hidden = !open;
+      card.setAttribute('aria-expanded', String(open));
+      if (hint) hint.textContent = (open ? '▾' : '▸') + ' 카드를 누르면 플레이북 — 이 숫자에서 무엇을 하나';
+    };
     $grid.addEventListener('click', (e) => {
       const btn = e.target.closest('.ask');
-      if (!btn) return;
-      $in.value = btn.dataset.q;
-      $in.focus();
+      if (btn) {
+        $in.value = btn.dataset.q;
+        $in.focus();
+        return;
+      }
+      if (e.target.closest('.pb')) return;
+      const card = e.target.closest('article.card');
+      if (card) togglePb(card);
+    });
+    $grid.addEventListener('keydown', (e) => {
+      if (e.target.closest('.ask')) return;
+      const card = e.target.closest('article.card');
+      if (!card) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePb(card); }
+      if (e.key === 'Escape' && card.getAttribute('aria-expanded') === 'true') { togglePb(card); card.focus(); }
     });
     $go.addEventListener('click', async () => {
       const text = $in.value.trim();
