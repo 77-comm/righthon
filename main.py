@@ -17,7 +17,7 @@ _PKG = ROOT / "packages"
 if _PKG.is_dir() and str(_PKG) not in sys.path:
     sys.path.insert(0, str(_PKG))
 
-from agent_run import run_agent
+from agent_run import maf_status, run_agent
 from board import build_board
 
 PUBLIC = ROOT / "public"
@@ -37,6 +37,7 @@ def healthz() -> dict:
         "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
         "configured": configured,
         "board": True,
+        "maf": maf_status(),
     }
 
 

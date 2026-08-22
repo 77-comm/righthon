@@ -136,6 +136,8 @@ def _maf_worker(message: str, instructions: str) -> str:
     SDK의 CLI 런타임 다운로드/스폰이 동기라 메인 루프를 막으면 gunicorn이 워커를 죽인다(502 실측)."""
     import asyncio
 
+    _ensure_local_cli()
+
     from agent_framework.github import GitHubCopilotAgent
 
     from board import fetch_macro
@@ -161,6 +163,51 @@ def _maf_worker(message: str, instructions: str) -> str:
     return asyncio.run(_go())
 
 
+# MAF 상태: Azure Files의 143MB CLI exec이 느려 첫 시도가 타임아웃 나기 쉽다.
+# 실패하면 쿨다운 동안 폴백 직행으로 심사 요청 지연을 막는다.
+_MAF = {"cooldown_until": 0.0, "last_error": None, "last_ok": None, "cli_local": False}
+_MAF_TIMEOUT = 35.0
+_MAF_COOLDOWN = 120.0
+
+
+def _ensure_local_cli() -> None:
+    """/home(Azure Files)의 CLI를 로컬 디스크 /tmp로 한 번 복사해 스폰을 빠르게 한다."""
+    if _MAF["cli_local"]:
+        return
+    import shutil
+    import stat
+
+    src = Path(os.environ.get("COPILOT_CLI_EXTRACT_DIR", "/home/copilot-cli")) / "copilot"
+    dst_dir = Path("/tmp/copilot-cli")
+    dst = dst_dir / "copilot"
+    try:
+        if dst.is_file() and dst.stat().st_size > 1e6:
+            os.environ["COPILOT_CLI_EXTRACT_DIR"] = str(dst_dir)
+            _MAF["cli_local"] = True
+            return
+        if src.is_file() and src.stat().st_size > 1e6:
+            dst_dir.mkdir(parents=True, exist_ok=True)
+            tmp = dst_dir / ".copying"
+            shutil.copyfile(src, tmp)
+            os.replace(tmp, dst)
+            dst.chmod(dst.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            os.environ["COPILOT_CLI_EXTRACT_DIR"] = str(dst_dir)
+            _MAF["cli_local"] = True
+    except Exception as exc:  # 복사 실패면 기존 경로로 진행
+        _MAF["last_error"] = f"cli-copy: {exc}"
+
+
+def maf_status() -> dict:
+    import time
+
+    return {
+        "cli_local": _MAF["cli_local"],
+        "cooldown": max(0, round(_MAF["cooldown_until"] - time.time())),
+        "last_ok": _MAF["last_ok"],
+        "last_error": (_MAF["last_error"] or "")[:200] or None,
+    }
+
+
 async def run_agent(message: str, board: dict) -> tuple[str, str]:
     import asyncio
 
@@ -174,13 +221,21 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
         + board_json
     )
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
-    try:
-        text = await asyncio.wait_for(
-            asyncio.to_thread(_maf_worker, message, instructions), timeout=50
-        )
-        if not text:
-            raise RuntimeError("empty agent content")
-        return text, f"GitHubCopilotAgent:{model}"
-    except Exception:
-        reply = await asyncio.to_thread(_azure_chat, message, instructions)
-        return reply, model + "+tools"
+    import time
+
+    if time.time() >= _MAF["cooldown_until"]:
+        try:
+            text = await asyncio.wait_for(
+                asyncio.to_thread(_maf_worker, message, instructions), timeout=_MAF_TIMEOUT
+            )
+            if not text:
+                raise RuntimeError("empty agent content")
+            _MAF["last_ok"] = time.strftime("%H:%M:%S")
+            _MAF["last_error"] = None
+            return text, f"GitHubCopilotAgent:{model}"
+        except Exception as exc:
+            _MAF["last_error"] = f"{type(exc).__name__}: {exc}"
+            _MAF["cooldown_until"] = time.time() + _MAF_COOLDOWN
+            print(f"[maf] fail -> fallback: {_MAF['last_error'][:300]}", flush=True)
+    reply = await asyncio.to_thread(_azure_chat, message, instructions)
+    return reply, model + "+tools"
