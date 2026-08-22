@@ -32,6 +32,7 @@ def _compact_board(board: dict) -> dict:
                 "policy_rate": (m.get("policy_rate") or {}).get("value"),
                 "policy_period": (m.get("policy_rate") or {}).get("year"),
                 "sides": c.get("sides"),
+                "playbook": c.get("playbook"),
             }
         )
     mk = board.get("market") or {}
