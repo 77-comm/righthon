@@ -7,7 +7,12 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DOCTRINE = (ROOT / "doctrine" / "dalio.md").read_text(encoding="utf-8")
+DOCTRINE = "\n\n".join(
+    (ROOT / p).read_text(encoding="utf-8")
+    for p in ("doctrine/dalio.md", "doctrine/eli5.md", "skills/eli5/SKILL.md")
+    if (ROOT / p).is_file()
+)
+SKILLS_DIR = str(ROOT / "skills")
 
 
 def _compact_board(board: dict) -> dict:
@@ -135,7 +140,10 @@ def _maf_worker(message: str, instructions: str) -> str:
     from board import fetch_macro
 
     provider = _azure_provider()
-    options: dict = {"model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")}
+    options: dict = {
+        "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
+        "skill_directories": [SKILLS_DIR],
+    }
     if provider:
         options["provider"] = provider
 

@@ -15,7 +15,7 @@ fi
 
 ZIP="$(mktemp -d)/righthon-py.zip"
 trap 'rm -f "$ZIP"' EXIT
-zip -q -r "$ZIP" main.py board.py agent_run.py requirements.txt public doctrine packages -x "packages/bin/*" "*/__pycache__/*"
+zip -q -r "$ZIP" main.py board.py agent_run.py requirements.txt public doctrine skills packages -x "packages/bin/*" "*/__pycache__/*"
 az webapp deploy -g "$RG" -n "$APP" --src-path "$ZIP" --type zip
 curl -sS --max-time 30 "https://${APP}.azurewebsites.net/healthz"
 echo
