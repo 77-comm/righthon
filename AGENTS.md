@@ -2,6 +2,7 @@
 
 > 🔴 **10:50 필수요소 공개로 스택이 바뀌었다. 아래 「스택」 서술(Node·의존성 0)은 폐기.**
 > **`.github/instructions/stack.instructions.md`를 먼저 읽어라.** 그 파일이 이 문서를 이긴다.
+> MAF+SDK 충족식은 **`.github/instructions/maf-sdk.instructions.md`**.
 > 살아 있는 절: **Azure 리소스 · 실측 함정 · 공식 공지 · 제출 이슈 3종.**
 
 **라이브(제출 URL):** https://righthon-hale.azurewebsites.net  ← 지금 살아 있음.

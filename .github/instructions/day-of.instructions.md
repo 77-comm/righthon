@@ -5,6 +5,7 @@ applyTo: "**"
 🔴 **10:50 필수요소 공개 — 우선순위가 바뀌었다.**
 1. **`.github/instructions/scoring.instructions.md`** ← **무엇을 만들지**를 정한다 (심사 배점)
 2. **`.github/instructions/stack.instructions.md`** ← **어떻게 만들지** (Python + MAF + Copilot SDK)
+2b. **`.github/instructions/maf-sdk.instructions.md`** ← 두 필수 기술을 **어떻게 충족할지** (다시 읽는 명세)
 3. `AGENTS.md` ← Azure 리소스·함정·공식 공지·제출 절차
 4. `.github/instructions/aspire.instructions.md` ← Aspire는 **쓰지 않는다**(감점 근거)
 5. `.github/copilot-instructions.md` ← 2026-08-21 초안, **F1·Node·SWA 서술 전부 폐기**
