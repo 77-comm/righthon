@@ -47,7 +47,26 @@ def _azure_provider() -> dict | None:
     return {"type": "azure", "base_url": host, "api_key": key}
 
 
-def _azure_chat(message: str, instructions: str) -> str:
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_macro",
+            "description": "공개 거시 한 시리즈. country는 KR/US/한국, indicator는 real_rate|policy_rate|inflation|gdp_growth|gov_debt.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "country": {"type": "string"},
+                    "indicator": {"type": "string"},
+                },
+                "required": ["country", "indicator"],
+            },
+        },
+    }
+]
+
+
+def _azure_post(messages: list, stream: bool = False) -> dict:
     import urllib.request
 
     key = os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("AZURE_OPENAI_KEY")
@@ -57,28 +76,53 @@ def _azure_chat(message: str, instructions: str) -> str:
     if not key or not endpoint:
         raise RuntimeError("azure not configured")
     url = f"{endpoint}/openai/deployments/{dep}/chat/completions?api-version={ver}"
-    body = json.dumps(
-        {
-            "messages": [
-                {"role": "system", "content": instructions},
-                {"role": "user", "content": message},
-            ],
-            "max_completion_tokens": 4000,
-        }
-    ).encode("utf-8")
+    payload = {
+        "messages": messages,
+        "max_completion_tokens": 4000,
+        "tools": TOOLS,
+        "stream": stream,
+    }
     req = urllib.request.Request(
         url,
-        data=body,
+        data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json", "api-key": key},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=55) as res:
-        payload = json.loads(res.read().decode("utf-8"))
-    text = (((payload.get("choices") or [{}])[0].get("message") or {}).get("content")) or ""
-    text = text.strip()
-    if not text:
-        raise RuntimeError("empty azure content")
-    return text
+        return json.loads(res.read().decode("utf-8"))
+
+
+def _azure_chat(message: str, instructions: str) -> str:
+    from board import fetch_macro
+
+    messages = [
+        {"role": "system", "content": instructions},
+        {"role": "user", "content": message},
+    ]
+    for _ in range(4):
+        payload = _azure_post(messages, stream=False)
+        choice = (payload.get("choices") or [{}])[0]
+        msg = choice.get("message") or {}
+        calls = msg.get("tool_calls") or []
+        if calls:
+            messages.append(msg)
+            for call in calls:
+                fn = (call.get("function") or {})
+                args = json.loads(fn.get("arguments") or "{}")
+                out = fetch_macro(str(args.get("country") or ""), str(args.get("indicator") or "real_rate"))
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": call.get("id"),
+                        "content": out,
+                    }
+                )
+            continue
+        text = (msg.get("content") or "").strip()
+        if not text:
+            raise RuntimeError("empty azure content")
+        return text
+    raise RuntimeError("tool loop exceeded")
 
 
 async def run_agent(message: str, board: dict) -> tuple[str, str]:
@@ -88,25 +132,27 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
         + "\n\n아래 JSON만 숫자 근거로 써라. 없는 값을 만들지 마라.\n"
         + board_json
     )
-    wanted = os.environ.get("COPILOT_MODEL", "gpt-5.6-luna")
     try:
         from agent_framework.github import GitHubCopilotAgent
 
-        options: dict = {"model": wanted}
-        if not (os.environ.get("GITHUB_TOKEN") or os.environ.get("COPILOT_GITHUB_TOKEN")):
-            provider = _azure_provider()
-            if provider:
-                options["provider"] = provider
-                options["model"] = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
-        agent = GitHubCopilotAgent(instructions=instructions, default_options=options)
+        provider = _azure_provider()
+        options: dict = {
+            "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
+        }
+        if provider:
+            options["provider"] = provider
+        agent = GitHubCopilotAgent(
+            instructions=instructions,
+            default_options=options,
+            tools=[__import__("board", fromlist=["fetch_macro"]).fetch_macro],
+        )
         async with agent:
             result = await agent.run(message)
         text = (getattr(result, "text", None) or str(result) or "").strip()
         if not text:
             raise RuntimeError("empty agent content")
-        return text, options["model"]
+        return text, f"GitHubCopilotAgent:{options['model']}"
     except Exception:
-        # B1에서 MAF 패키지 설치가 실패하면 Azure 직접 호출로 살린다.
         return _azure_chat(message, instructions), os.environ.get(
             "AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"
-        )
+        ) + "+tools"

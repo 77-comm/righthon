@@ -130,6 +130,39 @@ def _bis_policy(iso2: str) -> dict[str, Any] | None:
         return None
 
 
+def fetch_macro(country: str, indicator: str) -> str:
+    """Tool: one live series. country=KR/US/이름, indicator=real_rate|policy_rate|WB code."""
+    board = build_board()
+    key = (country or "").strip()
+    hit = None
+    for c in board.get("cards") or []:
+        if key.upper() in {c["id"], c["iso3"], c["name"].upper()} or key in c["name"]:
+            hit = c
+            break
+    if not hit:
+        return f"unknown country: {country}"
+    ind = (indicator or "real_rate").strip()
+    aliases = {spec["code"]: name for name, spec in INDICATORS.items()}
+    aliases.update({name: name for name in INDICATORS})
+    aliases["policy_rate"] = "policy_rate"
+    aliases["policy"] = "policy_rate"
+    name = aliases.get(ind) or aliases.get(ind.upper())
+    if not name:
+        return f"unknown indicator: {indicator}"
+    m = (hit.get("metrics") or {}).get(name) or {}
+    return json.dumps(
+        {
+            "country": hit["id"],
+            "indicator": name,
+            "value": m.get("value"),
+            "year": m.get("year"),
+            "code": m.get("code"),
+            "unit": m.get("unit"),
+        },
+        ensure_ascii=False,
+    )
+
+
 def _latest(points: list[dict[str, Any]]) -> dict[str, Any] | None:
     return points[-1] if points else None
 

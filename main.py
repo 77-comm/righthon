@@ -26,8 +26,8 @@ def healthz() -> dict:
     return {
         "ok": True,
         "runtime": "python",
-        "agent": "GitHubCopilotAgent",
-        "model": os.environ.get("COPILOT_MODEL", "gpt-5.6-luna"),
+        "agent": "azure-tools" if configured else "pending",
+        "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
         "configured": configured,
         "board": True,
     }
@@ -63,7 +63,7 @@ async def api_chat(payload: dict) -> JSONResponse:
     board = build_board()
     try:
         reply, model = await run_agent(message.strip(), board)
-        return JSONResponse({"reply": reply, "agent": "GitHubCopilotAgent", "model": model})
+        return JSONResponse({"reply": reply, "agent": model, "model": model})
     except Exception:
         return JSONResponse({"reply": _rule_reply(message, board), "agent": "rule"})
 

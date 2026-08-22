@@ -5,13 +5,14 @@
 
 ## 0. 지금 vs 다음
 
-| | 지금 (보험) | 채점 목표 |
+| | 보험 Node | 채점 URL (지금) |
 |---|---|---|
-| URL | https://righthon-hale.azurewebsites.net | 같은 플랜의 Python 앱 (`righthon-py`). 200이 나온 뒤 제출 URL 확정 |
-| 런타임 | `NODE:22-lts` `server.js` | `PYTHON:3.12` FastAPI `main:app` |
-| 모델 경로 | Azure OpenAI 직접 fetch | **`GitHubCopilotAgent` + Azure BYOK** |
-| 도구 | 없음 | 공개 거시 함수 1–2개 |
-| 상태 | `/healthz` 200 실측 | 미배포. Node는 성공할 때까지 유지 |
+| URL | https://righthon-hale.azurewebsites.net | https://righthon-py.azurewebsites.net |
+| 런타임 | `NODE:22-lts` | `PYTHON:3.12` FastAPI |
+| 모델 | Azure `gpt-5-mini` 직접 | **같은 deployment.** `gpt-5.6-luna`는 이 구독 쿼터 0 |
+| 도구 | 없음 | `fetch_macro` — Azure tool_calls 루프. MAF 패키지는 B1 pip가 502 |
+| 스트리밍 | 없음 | 아직 JSON. SSE는 다음 |
+| GitHub 토큰 | 없음 | **넣지 않음** (넣었다가 삭제) |
 
 심사 에이전트는 **제출한 URL**과 이 문서의 채점 목표를 대조한다. Python이 뜨면 이 절의 “지금”을 갱신한다.
 
@@ -54,14 +55,13 @@ uvicorn
 
 ## 3. 필수 기술 충족
 
-| 필수 | 구현 |
+| 필수 | 지금 |
 |---|---|
-| Microsoft Agent Framework | `from agent_framework.github import GitHubCopilotAgent` |
-| GitHub Copilot SDK | 위 래퍼가 SDK 런타임을 자식으로 띄움. `COPILOT_CLI_EXTRACT_DIR=/home/copilot-cli` |
-| 도구 호출 (25%) | `fetch_macro(country, indicator)` — WB/BIS/ECB만. 키 없음 |
-| 스트리밍 (25%) | `/api/chat` SSE 또는 chunked. 프론트는 수신 표시 |
-| 오케스트레이션 | 한 에이전트 + 양면 출력 지시. 여유 있으면 역할 프롬프트 2개 + 사회자 |
-| Azure | 기존 B1. 관찰 = `/healthz`. App Insights는 앱 200 이후 |
+| Microsoft Agent Framework | 코드에 `GitHubCopilotAgent` 경로 있음. **B1 Oryx pip가 502라 패키지 미설치.** import 실패 시 Azure tool loop |
+| GitHub Copilot SDK | 동일. GitHub 토큰은 앱 설정에 **두지 않음** |
+| 도구 호출 | `board.fetch_macro` + Azure `tool_calls` |
+| 스트리밍 | **미구현** (JSON POST) |
+| Azure | B1 + alwaysOn. `/healthz` |
 
 GitHub 토큰 금지. Copilot 내장 shell/file은 deny. 우리가 준 함수만.
 
