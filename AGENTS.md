@@ -90,6 +90,12 @@ curl -sS localhost:8080/healthz
 
 🔴 **제출할 이슈는 3개다** — https://matdaaiga.kr/matdathon/issues (빈 이슈 불가, 템플릿만)
 
+> 🔴 **16:07 실측 — 결과 제출 레포는 반드시 `hale-righthon` 계정 소유여야 한다.**
+> `77-comm/righthon`으로 낸 #153·#225는 봇이 12초 만에 거절·CLOSED
+> ("저장소 URL은 반드시 https://github.com/hale-righthon/ 으로 시작"). 이 규칙은 템플릿 어디에도 없었다.
+> 조치: `hale-righthon/righthon` 미러 생성, main push(해시 `ac68255` 보존), **#229 제출 → 봇 통과 (유효 제출본)**.
+> 미러는 ac68255로 동결 — 심사 해시가 고정이므로 이후 77-comm push는 심사에 반영되지 않는다.
+
 | # | 템플릿 | **누가** | 언제 | 핵심 제약 |
 |---|---|---|---|---|
 | 1 | `01-github-handle` 🪪 | ⚠️ **운영진일 가능성이 높다** (아래 참조) | 체크인 시점 | 제목 `[handle] <핸들>`, `@` 없이. **Copilot 라이선스가 하나도 안 붙은 개인 계정** → **`hale-righthon`**. QR(`images/ghcp-check.png`)로 "라이선스 없음/Free" 화면 확인 |
