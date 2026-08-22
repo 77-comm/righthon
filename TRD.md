@@ -28,13 +28,17 @@ Aspire·새 Foundry·SWA·로그인 없음.
 ## 2. 채점 스택 (한 프로세스)
 
 ```
-브라우저 → FastAPI
-  GET  /           public/index.html
+브라우저
+  GET  /              public/index.html  (계기판 UI)
+  GET  /api/board     서버가 WB/BIS/ECB fetch → JSON 카드
   GET  /healthz
-  POST /api/chat   → GitHubCopilotAgent (MAF + Copilot SDK)
-                       ├ tools: fetch_macro / compare_real_rates
-                       └ provider: azure BYOK → gpt-5-mini
+  POST /api/chat      GitHubCopilotAgent
+                        ├ instructions = doctrine/dalio.md (배포물에 포함)
+                        ├ tools: 같은 fetch (보드와 공유)
+                        └ BYOK azure → gpt-5-mini
 ```
+
+77단 코드·델타·페도라는 **import하지 않는다.** 달리오 원전 PDF를 레포에 넣지 않는다(저작권). 우리가 쓴 `doctrine/dalio.md`만 zip에 넣는다.
 
 패키지 (`requirements.txt` 루트):
 
