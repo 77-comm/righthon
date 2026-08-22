@@ -7,6 +7,9 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+CLI_DIR = Path(os.environ.get("COPILOT_CLI_EXTRACT_DIR") or (ROOT / "cli-linux"))
+CLI_BIN = CLI_DIR / "copilot"
+_CLI_LINUX_URL = "https://github.com/github/copilot-cli/releases/download/v1.0.65/copilot-linux-x64.tar.gz"
 DOCTRINE = "\n\n".join(
     (ROOT / p).read_text(encoding="utf-8")
     for p in ("doctrine/dalio.md", "doctrine/eli5.md", "skills/eli5/SKILL.md")
@@ -131,6 +134,47 @@ def _azure_chat(message: str, instructions: str) -> str:
     raise RuntimeError("tool loop exceeded")
 
 
+def cli_ready() -> bool:
+    return CLI_BIN.is_file() and CLI_BIN.stat().st_size > 1_000_000
+
+
+def warmup_linux_cli() -> str:
+    """Download Linux Copilot CLI into COPILOT_CLI_EXTRACT_DIR. Safe to call in a thread."""
+    if cli_ready():
+        return str(CLI_BIN)
+    import tarfile
+    import tempfile
+    import urllib.request
+
+    CLI_DIR.mkdir(parents=True, exist_ok=True)
+    req = urllib.request.Request(_CLI_LINUX_URL, headers={"User-Agent": "PerpMachine"})
+    with urllib.request.urlopen(req, timeout=120) as res:
+        blob = res.read()
+    with tarfile.open(fileobj=__import__("io").BytesIO(blob), mode="r:gz") as tf:
+        member = next(
+            (m for m in tf.getmembers() if m.isfile() and Path(m.name).name == "copilot"),
+            None,
+        )
+        if member is None:
+            raise RuntimeError("copilot binary missing in archive")
+        src = tf.extractfile(member)
+        data = src.read() if src else b""
+    tmp = Path(tempfile.mkstemp(dir=CLI_DIR, prefix=".copilot.")[1])
+    tmp.write_bytes(data)
+    tmp.chmod(0o755)
+    tmp.replace(CLI_BIN)
+    return str(CLI_BIN)
+
+
+def maf_importable() -> bool:
+    try:
+        from agent_framework_github_copilot import GitHubCopilotAgent  # noqa: F401
+
+        return True
+    except Exception:
+        return False
+
+
 def _maf_worker(message: str, instructions: str) -> str:
     """MAF+Copilot SDK를 전용 스레드·전용 루프에서 돌린다.
     SDK의 CLI 런타임 다운로드/스폰이 동기라 메인 루프를 막으면 gunicorn이 워커를 죽인다(502 실측)."""
@@ -146,6 +190,8 @@ def _maf_worker(message: str, instructions: str) -> str:
     options: dict = {
         "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
         "skill_directories": [SKILLS_DIR],
+        "cli_path": str(CLI_BIN),
+        "timeout": 40,
     }
     if provider:
         options["provider"] = provider
@@ -223,13 +269,8 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
     import time
 
-    # CLI 런타임이 있을 때만 MAF를 시도한다(없으면 스폰 시도로 시간만 태운다).
-    cli_root = Path(os.environ.get("COPILOT_CLI_EXTRACT_DIR", "/home/copilot-cli"))
-    cli_ok = Path("/tmp/copilot-cli/copilot").is_file() or any(
-        (cli_root / p).exists()
-        for p in ("copilot", "bin/copilot", "copilot-linux", "bin/copilot-linux")
-    )
-    try_maf = os.environ.get("TRY_MAF") == "1" or cli_ok
+    _ensure_local_cli()
+    try_maf = os.environ.get("TRY_MAF") == "1" or (maf_importable() and cli_ready())
     if try_maf and time.time() >= _MAF["cooldown_until"]:
         try:
             text = await asyncio.wait_for(

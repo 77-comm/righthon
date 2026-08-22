@@ -17,7 +17,7 @@ _PKG = ROOT / "packages"
 if _PKG.is_dir() and str(_PKG) not in sys.path:
     sys.path.insert(0, str(_PKG))
 
-from agent_run import maf_status, run_agent
+from agent_run import cli_ready, maf_importable, maf_status, run_agent, warmup_linux_cli
 from board import build_board
 
 PUBLIC = ROOT / "public"
@@ -25,15 +25,26 @@ PUBLIC = ROOT / "public"
 app = FastAPI(title="Perp_Machine", docs_url=None, redoc_url=None)
 
 
+@app.on_event("startup")
+def _warmup() -> None:
+    import threading
+
+    threading.Thread(target=warmup_linux_cli, name="copilot-cli-warmup", daemon=True).start()
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     configured = bool(
         os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("AZURE_OPENAI_KEY")
     )
+    maf = maf_importable()
+    cli = cli_ready()
     return {
         "ok": True,
         "runtime": "python",
-        "agent": "azure-tools" if configured else "pending",
+        "agent": "GitHubCopilotAgent" if (maf and cli) else ("azure-tools" if configured else "pending"),
+        "maf_import": maf,
+        "cli_ready": cli,
         "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
         "configured": configured,
         "board": True,
