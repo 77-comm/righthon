@@ -125,37 +125,50 @@ def _azure_chat(message: str, instructions: str) -> str:
     raise RuntimeError("tool loop exceeded")
 
 
+def _maf_worker(message: str, instructions: str) -> str:
+    """MAF+Copilot SDK를 전용 스레드·전용 루프에서 돌린다.
+    SDK의 CLI 런타임 다운로드/스폰이 동기라 메인 루프를 막으면 gunicorn이 워커를 죽인다(502 실측)."""
+    import asyncio
+
+    from agent_framework.github import GitHubCopilotAgent
+
+    from board import fetch_macro
+
+    provider = _azure_provider()
+    options: dict = {"model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")}
+    if provider:
+        options["provider"] = provider
+
+    async def _go() -> str:
+        agent = GitHubCopilotAgent(
+            instructions=instructions,
+            default_options=options,
+            tools=[fetch_macro],
+        )
+        async with agent:
+            result = await agent.run(message)
+        return (getattr(result, "text", None) or str(result) or "").strip()
+
+    return asyncio.run(_go())
+
+
 async def run_agent(message: str, board: dict) -> tuple[str, str]:
+    import asyncio
+
     board_json = json.dumps(_compact_board(board), ensure_ascii=False)
     instructions = (
         DOCTRINE
         + "\n\n아래 JSON만 숫자 근거로 써라. 없는 값을 만들지 마라.\n"
         + board_json
     )
+    model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
     try:
-        from agent_framework.github import GitHubCopilotAgent
-
-        provider = _azure_provider()
-        options: dict = {
-            "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
-        }
-        if provider:
-            options["provider"] = provider
-        agent = GitHubCopilotAgent(
-            instructions=instructions,
-            default_options=options,
-            tools=[__import__("board", fromlist=["fetch_macro"]).fetch_macro],
+        text = await asyncio.wait_for(
+            asyncio.to_thread(_maf_worker, message, instructions), timeout=50
         )
-        # CLI 런타임 첫 기동이 길어지면 폴백으로 넘어가게 상한을 건다.
-        import asyncio
-
-        async with agent:
-            result = await asyncio.wait_for(agent.run(message), timeout=50)
-        text = (getattr(result, "text", None) or str(result) or "").strip()
         if not text:
             raise RuntimeError("empty agent content")
-        return text, f"GitHubCopilotAgent:{options['model']}"
+        return text, f"GitHubCopilotAgent:{model}"
     except Exception:
-        return _azure_chat(message, instructions), os.environ.get(
-            "AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"
-        ) + "+tools"
+        reply = await asyncio.to_thread(_azure_chat, message, instructions)
+        return reply, model + "+tools"
