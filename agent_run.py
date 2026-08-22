@@ -174,13 +174,22 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
         + board_json
     )
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
-    try:
-        text = await asyncio.wait_for(
-            asyncio.to_thread(_maf_worker, message, instructions), timeout=50
-        )
-        if not text:
-            raise RuntimeError("empty agent content")
-        return text, f"GitHubCopilotAgent:{model}"
-    except Exception:
-        reply = await asyncio.to_thread(_azure_chat, message, instructions)
-        return reply, model + "+tools"
+    # MAF는 CLI 자식을 띄우다 50초를 다 먹으면 프론트 65초와 겹쳐 사용자에게 타임아웃만 보인다.
+    # CLI 런타임이 이미 있을 때만 짧게 시도한다. TRY_MAF=1 이면 강제.
+    cli_root = Path(os.environ.get("COPILOT_CLI_EXTRACT_DIR", "/home/copilot-cli"))
+    cli_ok = any(
+        (cli_root / p).exists()
+        for p in ("copilot", "bin/copilot", "copilot-linux", "bin/copilot-linux")
+    )
+    try_maf = os.environ.get("TRY_MAF") == "1" or cli_ok
+    if try_maf:
+        try:
+            text = await asyncio.wait_for(
+                asyncio.to_thread(_maf_worker, message, instructions), timeout=8
+            )
+            if text:
+                return text, f"GitHubCopilotAgent:{model}"
+        except Exception:
+            pass
+    reply = await asyncio.to_thread(_azure_chat, message, instructions)
+    return reply, model + "+tools"
