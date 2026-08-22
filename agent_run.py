@@ -269,21 +269,14 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
     import time
 
+    # MAF+Copilot SDK가 유일한 모델 연결 계층이다. 직접 Azure REST 우회는 제거했다.
+    # 실패 시 폴백은 모델 없는 결정론 규칙 응답(main._rule_reply)뿐이다.
     _ensure_local_cli()
-    try_maf = os.environ.get("TRY_MAF") == "1" or (maf_importable() and cli_ready())
-    if try_maf and time.time() >= _MAF["cooldown_until"]:
-        try:
-            text = await asyncio.wait_for(
-                asyncio.to_thread(_maf_worker, message, instructions), timeout=_MAF_TIMEOUT
-            )
-            if not text:
-                raise RuntimeError("empty agent content")
-            _MAF["last_ok"] = time.strftime("%H:%M:%S")
-            _MAF["last_error"] = None
-            return text, f"GitHubCopilotAgent:{model}"
-        except Exception as exc:
-            _MAF["last_error"] = f"{type(exc).__name__}: {exc}"
-            _MAF["cooldown_until"] = time.time() + _MAF_COOLDOWN
-            print(f"[maf] fail -> fallback: {_MAF['last_error'][:300]}", flush=True)
-    reply = await asyncio.to_thread(_azure_chat, message, instructions)
-    return reply, model + "+tools"
+    text = await asyncio.wait_for(
+        asyncio.to_thread(_maf_worker, message, instructions), timeout=_MAF_TIMEOUT
+    )
+    if not text:
+        raise RuntimeError("empty agent content")
+    _MAF["last_ok"] = time.strftime("%H:%M:%S")
+    _MAF["last_error"] = None
+    return text, f"GitHubCopilotAgent:{model}"

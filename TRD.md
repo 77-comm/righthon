@@ -61,7 +61,7 @@ uvicorn
 | Microsoft Agent Framework | `GitHubCopilotAgent` + Azure BYOK. **pip 불가**(래퍼 핀 `github-copilot-sdk==1.0.2`가 PyPI 소멸) → 리눅스 cp312 wheel을 `packages/`로 zip 동봉(sdk 1.0.4, deploy-py.sh가 조립) |
 | GitHub Copilot SDK | `github-copilot-sdk==1.0.4` 동봉. GitHub 토큰은 앱 설정에 **두지 않음** (BYOK) |
 | 도구 호출 | `board.fetch_macro` — MAF `tools=` + 폴백 Azure `tool_calls` 양쪽 |
-| 스트리밍 | **미구현** (JSON POST) |
+| 폴백 | Azure REST 우회 **제거** — 모델 연결은 GitHubCopilotAgent 단일 경로. 실패 시 모델 없는 규칙 응답만 |
 | Azure | B1 + alwaysOn. `/healthz` |
 
 GitHub 토큰 금지. Copilot 내장 shell/file은 deny. 우리가 준 함수만.

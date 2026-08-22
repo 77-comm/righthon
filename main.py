@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -42,13 +43,9 @@ def healthz() -> dict:
     return {
         "ok": True,
         "runtime": "python",
-        "agent": "GitHubCopilotAgent" if (maf and cli) else ("azure-tools" if configured else "pending"),
-        "maf_import": maf,
-        "cli_ready": cli,
-        "model": os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini"),
+        "agent": "GitHubCopilotAgent" if (maf and cli) else ("starting" if configured else "pending"),
         "configured": configured,
         "board": True,
-        "maf": maf_status(),
     }
 
 
@@ -75,7 +72,14 @@ def _rule_reply(message: str, board: dict) -> str:
 
 
 @app.post("/api/chat")
-async def api_chat(payload: dict) -> JSONResponse:
+async def api_chat(request: Request) -> JSONResponse:
+    body = await request.body()
+    if len(body) > 1_000_000:
+        return JSONResponse({"error": "본문이 1MB를 넘습니다"}, status_code=413)
+    try:
+        payload = json.loads(body)
+    except Exception:
+        return JSONResponse({"error": "JSON 본문이 필요합니다"}, status_code=400)
     message = payload.get("message") if isinstance(payload, dict) else None
     if not isinstance(message, str) or not message.strip():
         return JSONResponse({"error": "message 필드가 필요합니다"}, status_code=400)
@@ -83,7 +87,10 @@ async def api_chat(payload: dict) -> JSONResponse:
     try:
         reply, model = await run_agent(message.strip(), board)
         return JSONResponse({"reply": reply, "agent": model, "model": model})
-    except Exception:
+    except TimeoutError:
+        return JSONResponse({"error": "업스트림 응답 지연"}, status_code=504)
+    except Exception as exc:
+        print(f"[chat] agent fail -> rule: {type(exc).__name__}", flush=True)
         return JSONResponse({"reply": _rule_reply(message, board), "agent": "rule"})
 
 
