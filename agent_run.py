@@ -165,9 +165,12 @@ async def run_agent(message: str, board: dict) -> tuple[str, str]:
     import asyncio
 
     board_json = json.dumps(_compact_board(board), ensure_ascii=False)
+    import datetime
+
+    today = datetime.date.today().isoformat()
     instructions = (
         DOCTRINE
-        + "\n\n아래 JSON만 숫자 근거로 써라. 없는 값을 만들지 마라.\n"
+        + f"\n\n오늘은 {today}다. 아래 JSON 지표의 연도/기간이 오늘보다 오래됐으면 그 격차를 밝히고, 격차가 크면 판정을 조건부로 낮춰라. 아래 JSON만 숫자 근거로 써라. 없는 값을 만들지 마라.\n"
         + board_json
     )
     model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5-mini")
