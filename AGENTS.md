@@ -22,6 +22,7 @@
 4. **정적 파일은 `public/`에만.** 루트에 두면 정적 루트가 레포 루트가 되어 `/server.js`가 200으로 소스를 뱉는다(실측).
 5. **`%2e%2e` 방어는 `url.pathname`이 퍼센트 디코딩을 안 해서 성립한다.** 경로에 `decodeURIComponent`를 씌우면 `..`가 살아나 경로 이탈이 열린다.
 6. **콜드스타트는 B1+alwaysOn으로 제거됨**(F1일 때 27.6초). 오늘 F1으로 내리면 심사 첫 요청이 타임아웃 난다. SKU 내리지 마.
+7. **(14:25) MAF 패키지를 Oryx로 설치하면 B1 배포가 죽는다.** `agent-framework` 계열을 requirements.txt에 넣은 zip 배포 → Kudu 502 → 사이트 503 (2회 실측). 현재 righthon-py는 경량 requirements + Azure tool_calls 폴백으로 살아 있고 `GitHubCopilotAgent`는 죽은 경로다. **재시도는 Oryx pip 말고 wheel/site-packages 동봉으로** (`stack.instructions.md` 갱신분 참조). 필수요소 미충족 리스크가 열려 있다 — 제출 전 해소하거나 제출 URL 판단에 반영할 것.
 
 ## 오늘 제약 (10:50 공개분 반영)
 
