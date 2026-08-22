@@ -3,77 +3,185 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>righthon</title>
+  <title>Perp_Machine — 계기판</title>
   <style>
-    :root { color-scheme: light dark; }
-    body {
-      margin: 0; padding: 2rem 1rem;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      line-height: 1.6; display: flex; justify-content: center;
+    :root {
+      --ink: #1c1915; --paper: #f4efe4; --card: #fffdf7; --line: #d7cfc0;
+      --muted: #6b6458; --cred: #1f4d3a; --debt: #7a2e1b;
     }
-    main { width: 100%; max-width: 42rem; }
-    h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
-    p.sub { margin: 0 0 1.5rem; opacity: .65; font-size: .9rem; }
-    textarea {
-      width: 100%; min-height: 8rem; padding: .75rem; box-sizing: border-box;
-      font: inherit; border: 1px solid rgba(128,128,128,.4); border-radius: .5rem;
-      background: transparent; color: inherit; resize: vertical;
-    }
-    button {
-      margin-top: .75rem; padding: .6rem 1.2rem; font: inherit; font-weight: 600;
-      border: 0; border-radius: .5rem; cursor: pointer;
-      background: #2563eb; color: #fff;
-    }
-    button:disabled { opacity: .5; cursor: default; }
-    #out {
-      margin-top: 1.5rem; padding: 1rem; white-space: pre-wrap;
-      border: 1px solid rgba(128,128,128,.3); border-radius: .5rem;
-      min-height: 3rem; overflow-x: auto;
-    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--paper); color: var(--ink); }
+    body { font: 16px/1.5 "Iowan Old Style", Palatino, "Noto Serif KR", serif; }
+    header, .wrap { max-width: 74rem; margin: 0 auto; padding: 0 1rem; }
+    header { padding-top: 1.2rem; }
+    header h1 { font-size: 1.4rem; margin: 0; }
+    header p { margin: .35rem 0 0; color: var(--muted); font-size: .92rem; }
+    .note { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; margin: 1rem 0 .6rem; }
+    .market { display: flex; flex-wrap: wrap; gap: .45rem 1rem; font-variant-numeric: tabular-nums; font-size: .88rem; margin-bottom: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16.2rem, 1fr)); gap: .8rem; }
+    article.card { background: var(--card); border: 1px solid var(--line); padding: .85rem .9rem 1rem; display: flex; flex-direction: column; gap: .4rem; }
+    article.card.buffer { background: #f7f3ea; }
+    article.card:hover, article.card:focus-within { border-color: var(--ink); }
+    .card h2 { font-size: 1.02rem; margin: 0; display: flex; justify-content: space-between; align-items: baseline; }
+    .iso { font-size: .72rem; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+    .hero { font-variant-numeric: tabular-nums; font-size: 1.9rem; line-height: 1.1; }
+    .hero small { display: block; font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+    .spark { width: 100%; height: 28px; display: block; }
+    .base { height: 8px; background: #ece6d8; position: relative; margin: .15rem 0 .35rem; }
+    .base i, .base b { position: absolute; top: -2px; width: 2px; height: 12px; background: var(--ink); }
+    .base b { background: #8a7a4b; width: 3px; }
+    .rows { display: grid; gap: .18rem; font-size: .78rem; font-variant-numeric: tabular-nums; }
+    .rows div { display: flex; justify-content: space-between; gap: .7rem; color: var(--muted); }
+    .rows span:last-child { color: var(--ink); }
+    .dual { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+    .dual p { margin: 0; font-size: .74rem; padding: .38rem .42rem; border: 1px solid var(--line); min-height: 4.2rem; }
+    .dual strong { display: block; font-size: .66rem; letter-spacing: .04em; }
+    .c strong { color: var(--cred); } .d strong { color: var(--debt); }
+    .ask { align-self: start; background: transparent; border: 1px solid var(--ink); font: inherit; font-size: .78rem; padding: .28rem .55rem; cursor: pointer; }
+    .ask:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .chat { margin: 1.6rem 0 2.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+    label { display: block; font-size: .85rem; margin-bottom: .3rem; }
+    textarea { width: 100%; min-height: 5.2rem; padding: .65rem; border: 1px solid var(--line); background: var(--card); font: inherit; }
+    textarea:focus { outline: 2px solid var(--ink); }
+    .row { display: flex; gap: .5rem; align-items: center; margin-top: .5rem; flex-wrap: wrap; }
+    #go { background: var(--ink); color: var(--paper); border: 0; font: inherit; padding: .42rem .85rem; cursor: pointer; }
+    #go:disabled { opacity: .45; }
+    #cancel { background: transparent; border: 1px solid var(--line); font: inherit; padding: .42rem .7rem; }
+    #out { margin-top: .8rem; white-space: pre-wrap; border: 1px solid var(--line); padding: .75rem; background: var(--card); }
     #out:empty { display: none; }
+    .badge { font-size: .72rem; color: var(--muted); }
+    .err { color: var(--debt); }
+    @media (max-width: 520px) { .dual { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <main>
-    <h1>righthon</h1>
-    <p class="sub">종단 확인용 껍데기 — 입력 → Functions → 모델 → 출력</p>
-
-    <textarea id="input" placeholder="할 일을 아무렇게나 적어보세요."></textarea>
-    <button id="go">보내기</button>
-    <div id="out"></div>
-  </main>
-
+  <header>
+    <h1>Perp_Machine</h1>
+    <p>같은 실질금리가 채권자에겐 매력, 채무자에겐 비용이다. 포지션을 묻지 않는다.</p>
+  </header>
+  <div class="wrap">
+    <p class="note" id="vintage">계기판을 불러오는 중…</p>
+    <div class="market" id="market" hidden></div>
+    <div class="grid" id="grid" role="list"></div>
+    <section class="chat" aria-labelledby="ask-title">
+      <h2 id="ask-title" style="font-size:1.05rem;margin:0 0 .35rem;">질문 (선택)</h2>
+      <label for="input">나라 이름이나 지표. 근거는 위 숫자와 달리오 지시.</label>
+      <textarea id="input" placeholder="예: 한국 실질금리 / 일본은 채무자에게 싼가"></textarea>
+      <div class="row">
+        <button type="button" id="go">보내기</button>
+        <button type="button" id="cancel" hidden>취소</button>
+        <span class="badge">규칙 초안. 매매 아님. 에이전트는 연결 중.</span>
+      </div>
+      <div id="out" role="status" aria-live="polite"></div>
+    </section>
+  </div>
   <script>
+    const $grid = document.getElementById('grid');
+    const $vintage = document.getElementById('vintage');
+    const $market = document.getElementById('market');
     const $in = document.getElementById('input');
     const $go = document.getElementById('go');
+    const $cancel = document.getElementById('cancel');
     const $out = document.getElementById('out');
+    let ctl = null, benches = {};
 
+    const fmt = (v, unit) => {
+      if (v == null) return '—';
+      if (unit === 'USD') {
+        const t = v / 1e9;
+        return t >= 1000 ? (t/1000).toFixed(1) + '조$' : t.toFixed(0) + '십억$';
+      }
+      return Number(v).toFixed(2) + (unit === '%GDP' ? '%GDP' : '%');
+    };
+    const spark = (vals) => {
+      if (!vals || vals.length < 2) return '';
+      const w = 220, h = 28, p = 2;
+      const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+      const pts = vals.map((v, i) => {
+        const x = p + (i / (vals.length - 1)) * (w - p * 2);
+        const y = h - p - ((v - min) / span) * (h - p * 2);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline fill="none" stroke="#1c1915" stroke-width="1.2" points="' + pts + '"/></svg>';
+    };
+    const bar = (value, key) => {
+      const b = benches[key] || {};
+      const vals = [value, b.peer_median, b.buffer_median].filter(v => v != null);
+      if (!vals.length || value == null) return '';
+      const min = Math.min(...vals) - 1, max = Math.max(...vals) + 1, span = max - min || 1;
+      const pct = (x) => ((x - min) / span * 100).toFixed(1) + '%';
+      let html = '<div class="base" title="검정=이 나라, 갈색=동료 중앙값">';
+      html += '<i style="left:' + pct(value) + '"></i>';
+      if (b.peer_median != null) html += '<b style="left:' + pct(b.peer_median) + '"></b>';
+      return html + '</div>';
+    };
+    const cardHtml = (c) => {
+      const m = c.metrics, rr = m.real_rate;
+      const extras = ['inflation','gdp_growth','productivity','gov_debt'].map((k) => {
+        const x = m[k];
+        const d = x.vs_peer;
+        const mark = d == null ? '' : (d >= 0 ? ' +' : ' ') + d.toFixed(1);
+        return '<div><span>' + x.label + ' · ' + (x.year || '?') + '</span><span>' + fmt(x.value, x.unit) + mark + '</span></div>';
+      }).join('');
+      const role = c.role === 'buffer' ? '완충' : '';
+      return '<article class="card ' + (c.role || '') + '" role="listitem">' +
+        '<h2>' + c.name + (role ? ' · ' + role : '') + '<span class="iso">' + c.id + '</span></h2>' +
+        '<div class="hero">' + fmt(rr.value, '%') +
+        '<small>실질금리 · ' + (rr.year || '연도 없음') + ' · 동료중앙값 ' +
+        (benches.real_rate && benches.real_rate.peer_median != null ? benches.real_rate.peer_median.toFixed(2) + '%' : '—') +
+        '</small></div>' +
+        spark(rr.spark) + bar(rr.value, 'real_rate') +
+        '<div class="rows">' + extras + '</div>' +
+        '<div class="dual"><p class="c"><strong>채권자</strong>' + c.sides.creditor +
+        '</p><p class="d"><strong>채무자</strong>' + c.sides.debtor + '</p></div>' +
+        '<button type="button" class="ask" data-q="' + c.name + ' 실질금리">이 나라로 묻기</button></article>';
+    };
+
+    const load = async () => {
+      try {
+        const res = await fetch('/api/board', { signal: AbortSignal.timeout(35000) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        benches = data.benchmarks || {};
+        $vintage.textContent = (data.vintage_note || '') + ' ' + (data.benchmark_note || '');
+        const mk = data.market || {};
+        const bits = [];
+        if (mk.us_10y) bits.push('<span>미국 10년 <b>' + mk.us_10y.price.toFixed(2) + '%</b></span>');
+        if (mk.us_3m) bits.push('<span>미국 3개월 <b>' + mk.us_3m.price.toFixed(2) + '%</b></span>');
+        if (mk.us_curve) bits.push('<span>' + mk.us_curve.label + ' <b>' + mk.us_curve.value + '</b></span>');
+        if (bits.length) { $market.hidden = false; $market.innerHTML = bits.join('') + '<span class="badge">' + (mk.source || '') + '</span>'; }
+        $grid.innerHTML = (data.cards || []).map(cardHtml).join('');
+      } catch (err) {
+        $vintage.innerHTML = '<span class="err">계기판 실패: ' + err.message + '</span>';
+      }
+    };
+
+    $grid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.ask');
+      if (!btn) return;
+      $in.value = btn.dataset.q;
+      $in.focus();
+    });
     $go.addEventListener('click', async () => {
       const text = $in.value.trim();
       if (!text) return;
-
-      $go.disabled = true;
-      $out.textContent = '…';
-
+      ctl = new AbortController();
+      $go.disabled = true; $cancel.hidden = false; $out.textContent = '…';
       try {
-        // 타임아웃이 없으면 버튼이 disabled인 채 브라우저 기본 한도까지 멈춘다.
-        // 시연 중에는 그게 "먹통"으로 보인다. 서버(60초)보다 5초 여유를 준다.
         const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text }),
-          signal: AbortSignal.timeout(65000)
+          signal: AbortSignal.any([ctl.signal, AbortSignal.timeout(65000)])
         });
         const data = await res.json();
-        $out.textContent = res.ok ? (data.reply || '(빈 응답)') : `오류 ${res.status}: ${data.error || ''}`;
+        $out.textContent = res.ok ? (data.reply || '(빈 응답)') : ('오류 ' + res.status + ': ' + (data.error || ''));
       } catch (err) {
         $out.textContent = (err.name === 'TimeoutError' || err.name === 'AbortError')
-          ? '응답 시간이 초과됐습니다. 다시 시도해 주세요.'
-          : `요청 실패: ${err.message}`;
-      } finally {
-        $go.disabled = false;
-      }
+          ? '취소됐거나 시간이 초과됐다.' : ('요청 실패: ' + err.message);
+      } finally { $go.disabled = false; $cancel.hidden = true; ctl = null; }
     });
+    $cancel.addEventListener('click', () => { if (ctl) ctl.abort(); });
+    load();
   </script>
 </body>
 </html>
