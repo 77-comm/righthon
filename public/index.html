@@ -7,7 +7,8 @@
   <style>
     :root {
       --ink: #1c1915; --paper: #f4efe4; --card: #fffdf7; --line: #d7cfc0;
-      --muted: #6b6458; --cred: #1f4d3a; --debt: #7a2e1b;
+      --muted: #6b6458; --cred: #1f4d3a; --debt: #7a2e1b; --mix: #7a6a1f;
+      --skel: #e7e0d0;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; background: var(--paper); color: var(--ink); }
@@ -16,15 +17,35 @@
     header { padding-top: 1.2rem; }
     header h1 { font-size: 1.4rem; margin: 0; }
     header p { margin: .35rem 0 0; color: var(--muted); font-size: .92rem; }
-    .note { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; margin: 1rem 0 .6rem; }
-    .market { display: flex; flex-wrap: wrap; gap: .45rem 1rem; font-variant-numeric: tabular-nums; font-size: .88rem; margin-bottom: 1rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16.2rem, 1fr)); gap: .8rem; }
+    nav.tabs { display: flex; gap: 1rem; margin: .7rem 0 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    nav.tabs a { color: var(--ink); text-decoration: none; font-size: .85rem; padding: .3rem .1rem .5rem; border-bottom: 2px solid transparent; }
+    nav.tabs a:hover, nav.tabs a:focus { border-bottom-color: var(--ink); }
+    .legend { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding: .75rem 0 .6rem; margin: 1rem 0 .6rem; }
+    .legend strong { color: var(--ink); }
+    .legend .swatches { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .35rem; font-size: .78rem; }
+    .legend .sw { display: inline-flex; align-items: center; gap: .3rem; }
+    .legend .dot { width: .6rem; height: .6rem; border-radius: 50%; display: inline-block; }
+    .dot.c { background: var(--cred); } .dot.d { background: var(--debt); } .dot.m { background: var(--mix); }
+    .note { font-size: .82rem; color: var(--muted); margin: 0 0 .6rem; }
+    .market { font-size: .88rem; color: var(--muted); margin-bottom: 1rem; }
+    .market .bits { display: flex; flex-wrap: wrap; gap: .45rem 1rem; font-variant-numeric: tabular-nums; }
+    .market .hint { font-size: .78rem; margin: .2rem 0 0; }
+    .grid, .skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(16.2rem, 1fr)); gap: .8rem; }
     article.card { background: var(--card); border: 1px solid var(--line); padding: .85rem .9rem 1rem; display: flex; flex-direction: column; gap: .4rem; }
     article.card.buffer { background: #f7f3ea; }
     article.card:hover, article.card:focus-within { border-color: var(--ink); }
+    article.card.tilt-creditor { border-left: 4px solid var(--cred); }
+    article.card.tilt-debtor { border-left: 4px solid var(--debt); }
+    article.card.tilt-mixed { border-left: 4px solid var(--mix); }
     .card h2 { font-size: 1.02rem; margin: 0; display: flex; justify-content: space-between; align-items: baseline; }
     .iso { font-size: .72rem; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+    .tilt-tag { font-size: .68rem; padding: .05rem .45rem; border-radius: .8rem; align-self: flex-start; }
+    .tilt-tag.tilt-creditor { color: var(--cred); border: 1px solid var(--cred); }
+    .tilt-tag.tilt-debtor { color: var(--debt); border: 1px solid var(--debt); }
+    .tilt-tag.tilt-mixed { color: var(--mix); border: 1px solid var(--mix); }
     .hero { font-variant-numeric: tabular-nums; font-size: 1.9rem; line-height: 1.1; }
+    article.tilt-creditor .hero .vv { color: var(--cred); }
+    article.tilt-debtor .hero .vv { color: var(--debt); }
     .hero small { display: block; font-size: .7rem; color: var(--muted); margin-top: .15rem; }
     .spark { width: 100%; height: 28px; display: block; }
     .base { height: 8px; background: #ece6d8; position: relative; margin: .15rem 0 .35rem; }
@@ -33,57 +54,127 @@
     .rows { display: grid; gap: .18rem; font-size: .78rem; font-variant-numeric: tabular-nums; }
     .rows div { display: flex; justify-content: space-between; gap: .7rem; color: var(--muted); }
     .rows span:last-child { color: var(--ink); }
+    .delta { font-size: .68rem; color: var(--muted); }
+    .rows span[title] { border-bottom: 1px dotted var(--line); cursor: help; }
     .dual { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
     .dual p { margin: 0; font-size: .74rem; padding: .38rem .42rem; border: 1px solid var(--line); min-height: 4.2rem; }
     .dual strong { display: block; font-size: .66rem; letter-spacing: .04em; }
     .c strong { color: var(--cred); } .d strong { color: var(--debt); }
     .ask { align-self: start; background: transparent; border: 1px solid var(--ink); font: inherit; font-size: .78rem; padding: .28rem .55rem; cursor: pointer; }
     .ask:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
-    .chat { margin: 1.6rem 0 2.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+    .chat { margin: 1.6rem 0 1rem; border-top: 1px solid var(--line); padding-top: 1rem; }
     label { display: block; font-size: .85rem; margin-bottom: .3rem; }
     textarea { width: 100%; min-height: 5.2rem; padding: .65rem; border: 1px solid var(--line); background: var(--card); font: inherit; }
     textarea:focus { outline: 2px solid var(--ink); }
     .row { display: flex; gap: .5rem; align-items: center; margin-top: .5rem; flex-wrap: wrap; }
     #go { background: var(--ink); color: var(--paper); border: 0; font: inherit; padding: .42rem .85rem; cursor: pointer; }
     #go:disabled { opacity: .45; }
-    #cancel { background: transparent; border: 1px solid var(--line); font: inherit; padding: .42rem .7rem; }
+    #cancel { background: transparent; border: 1px solid var(--line); font: inherit; padding: .42rem .7rem; cursor: pointer; }
     #out { margin-top: .8rem; white-space: pre-wrap; border: 1px solid var(--line); padding: .75rem; background: var(--card); }
     #out:empty { display: none; }
     .badge { font-size: .72rem; color: var(--muted); }
     .err { color: var(--debt); }
+    details.method { margin: 0 0 2.5rem; font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .6rem; }
+    details.method summary { cursor: pointer; color: var(--ink); font-size: .88rem; }
+    details.method summary:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+    details.method p { margin: .5rem 0; }
+    .skel .s-card { height: 15rem; background: linear-gradient(90deg, var(--skel), #f2ede0, var(--skel)); background-size: 200% 100%; animation: shine 1.3s infinite; border: 1px solid var(--line); }
+    @keyframes shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .sr-only { position: absolute; left: -9999px; }
     @media (max-width: 520px) { .dual { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .skel .s-card { animation: none; } }
   </style>
 </head>
 <body>
   <header>
     <h1>Perp_Machine</h1>
     <p>같은 실질금리가 채권자에겐 매력, 채무자에겐 비용이다. 포지션을 묻지 않는다.</p>
+    <nav class="tabs" aria-label="섹션 이동">
+      <a href="#dashboard">Dashboard 계기판</a>
+      <a href="#ask">Ask 질문</a>
+      <a href="#method">Method 방법론</a>
+    </nav>
   </header>
   <div class="wrap">
-    <p class="note" id="vintage">계기판을 불러오는 중…</p>
-    <div class="market" id="market" hidden></div>
-    <div class="grid" id="grid" role="list"></div>
-    <section class="chat" aria-labelledby="ask-title">
-      <h2 id="ask-title" style="font-size:1.05rem;margin:0 0 .35rem;">질문 (선택)</h2>
-      <label for="input">나라 이름이나 지표. 근거는 위 숫자와 달리오 지시.</label>
+    <section id="dashboard" aria-labelledby="dashboard-title">
+      <h2 id="dashboard-title" class="sr-only">Dashboard 계기판</h2>
+      <p class="legend">
+        <strong>읽는 법</strong> — Real Rate(실질금리) = 명목금리 − 인플레.
+        양수(+)면 현금·채권 보유자(채권자)에게 유리, 음수(−)면 빚 진 쪽(채무자)에게 유리하다.
+        카드 왼쪽 색 막대와 태그가 이 기울기(tilt)다.
+        <span class="swatches">
+          <span class="sw"><i class="dot c" aria-hidden="true"></i>creditor 채권자 유리</span>
+          <span class="sw"><i class="dot d" aria-hidden="true"></i>debtor 채무자 유리</span>
+          <span class="sw"><i class="dot m" aria-hidden="true"></i>mixed 혼재</span>
+        </span>
+      </p>
+      <p class="note" id="vintage">계기판을 불러오는 중…</p>
+      <div id="skeleton" class="skel" aria-hidden="true">
+        <div class="s-card"></div><div class="s-card"></div><div class="s-card"></div><div class="s-card"></div>
+      </div>
+      <div class="grid" id="grid" role="list"></div>
+      <div class="market" id="market" hidden>
+        <div class="bits" id="market-bits"></div>
+        <p class="hint">US Yield Curve(10Y−3M, 미국 10년물−3개월물 금리차) — 음수(역전)는 침체 신호로 읽히곤 한다.</p>
+      </div>
+    </section>
+
+    <section class="chat" id="ask" aria-labelledby="ask-title">
+      <h2 id="ask-title" style="font-size:1.05rem;margin:0 0 .35rem;">Ask 질문 (선택)</h2>
+      <label for="input">나라 이름이나 지표를 물어보라. 근거는 위 계기판 숫자와 동료국 비교다.</label>
       <textarea id="input" placeholder="예: 한국 실질금리 / 일본은 채무자에게 싼가"></textarea>
       <div class="row">
         <button type="button" id="go">보내기</button>
         <button type="button" id="cancel" hidden>취소</button>
-        <span class="badge">AI가 생성한 결과일 수 있다. 매매 아님.</span>
+        <span class="badge">⚠️ AI가 생성한 결과다. 매매 조언 아님 — 참고용.</span>
       </div>
       <div id="out" role="status" aria-live="polite"></div>
     </section>
+
+    <details class="method" id="method">
+      <summary>Method 방법론 — 데이터 출처와 주의사항</summary>
+      <p id="vintage-detail"></p>
+      <p id="bench-detail"></p>
+      <p>지표는 World Bank(연간·후행) + BIS 정책금리 + Yahoo Finance(미국 국채, 키 없는 비공식 소스)를 조합한다.
+      비교 기준선은 표시국 중앙값(peer median)이다. 완충국(SG/NO/CH)은 재무상태가 튼튼한 참고 그룹일 뿐이며,
+      표본이 작아 통계적 분포 적합은 하지 않는다. 숫자가 비어 있으면 원천 데이터가 없다는 뜻이지 오류가 아니다.</p>
+      <p id="market-src"></p>
+    </details>
   </div>
   <script>
     const $grid = document.getElementById('grid');
+    const $skeleton = document.getElementById('skeleton');
     const $vintage = document.getElementById('vintage');
+    const $vintageDetail = document.getElementById('vintage-detail');
+    const $benchDetail = document.getElementById('bench-detail');
+    const $marketSrc = document.getElementById('market-src');
     const $market = document.getElementById('market');
+    const $marketBits = document.getElementById('market-bits');
     const $in = document.getElementById('input');
     const $go = document.getElementById('go');
     const $cancel = document.getElementById('cancel');
     const $out = document.getElementById('out');
     let ctl = null, benches = {};
+
+    const LABELS = {
+      real_rate: 'Real Rate 실질금리',
+      policy_rate: 'Policy Rate 정책금리',
+      inflation: 'CPI 인플레',
+      gdp_growth: 'GDP Growth 성장',
+      gov_debt: 'Gov Debt 정부부채',
+      productivity: 'Productivity 생산성',
+    };
+    const TIPS = {
+      real_rate: '명목금리에서 인플레를 뺀 값. 채권자·채무자 유불리를 가른다.',
+      policy_rate: '중앙은행이 정하는 기준금리(명목).',
+      inflation: '소비자물가 상승률(전년 대비).',
+      gdp_growth: '실질 GDP 성장률.',
+      gov_debt: 'GDP 대비 정부부채 비율.',
+      productivity: '성장 여력을 보는 보조 지표.',
+    };
+    const TILT_KO = { creditor: '채권자 유리', debtor: '채무자 유리', mixed: '혼재' };
+    // 서버발 내부 용어를 사용자용 문구로 치환
+    const clean = (s) => String(s || '').replace(/빈티지가 비어 있다/g, '원천 데이터가 아직 없다');
 
     const fmt = (v, unit) => {
       if (v == null) return '—';
@@ -97,12 +188,21 @@
       if (!vals || vals.length < 2) return '';
       const w = 220, h = 28, p = 2;
       const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+      let lastX = 0, lastY = 0;
       const pts = vals.map((v, i) => {
         const x = p + (i / (vals.length - 1)) * (w - p * 2);
         const y = h - p - ((v - min) / span) * (h - p * 2);
+        lastX = x; lastY = y;
         return x.toFixed(1) + ',' + y.toFixed(1);
       }).join(' ');
-      return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline fill="none" stroke="#1c1915" stroke-width="1.2" points="' + pts + '"/></svg>';
+      let zero = '';
+      if (min < 0 && max > 0) {
+        const zy = (h - p - ((0 - min) / span) * (h - p * 2)).toFixed(1);
+        zero = '<line x1="' + p + '" x2="' + (w - p) + '" y1="' + zy + '" y2="' + zy + '" stroke="#b7ad99" stroke-width="0.8" stroke-dasharray="3 3"/>';
+      }
+      return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' + zero +
+        '<polyline fill="none" stroke="#1c1915" stroke-width="1.2" points="' + pts + '"/>' +
+        '<circle cx="' + lastX.toFixed(1) + '" cy="' + lastY.toFixed(1) + '" r="2.2" fill="#1c1915"/></svg>';
     };
     const bar = (value, key) => {
       const b = benches[key] || {};
@@ -110,32 +210,43 @@
       if (!vals.length || value == null) return '';
       const min = Math.min(...vals) - 1, max = Math.max(...vals) + 1, span = max - min || 1;
       const pct = (x) => ((x - min) / span * 100).toFixed(1) + '%';
-      let html = '<div class="base" title="검정=이 나라, 갈색=동료 중앙값">';
+      let html = '<div class="base" title="검정 눈금=이 나라, 갈색 눈금=표시국 중앙값">';
       html += '<i style="left:' + pct(value) + '"></i>';
       if (b.peer_median != null) html += '<b style="left:' + pct(b.peer_median) + '"></b>';
       return html + '</div>';
     };
     const cardHtml = (c) => {
       const m = c.metrics, rr = m.real_rate;
-      const extras = ['policy_rate','inflation','gdp_growth','productivity','gov_debt'].map((k) => {
+      const extras = ['policy_rate','inflation','gdp_growth','productivity','gov_debt'].filter((k) => m[k]).map((k) => {
         const x = m[k];
         const d = x.vs_peer;
-        const mark = d == null ? '' : (d >= 0 ? ' +' : ' ') + d.toFixed(1);
-        return '<div><span>' + x.label + ' · ' + (x.year || '?') + '</span><span>' + fmt(x.value, x.unit) + mark + '</span></div>';
+        const mark = d == null ? '' : ' <span class="delta" title="표시국 중앙값 대비">' + (d >= 0 ? '▲' : '▼') + Math.abs(d).toFixed(1) + '</span>';
+        return '<div><span title="' + (TIPS[k] || '') + '">' + (LABELS[k] || x.label) + ' · ' + (x.year || '?') + '</span><span>' + fmt(x.value, x.unit) + mark + '</span></div>';
       }).join('');
-      const role = c.role === 'buffer' ? '완충' : '';
-      return '<article class="card ' + (c.role || '') + '" role="listitem">' +
-        '<h2>' + c.name + (role ? ' · ' + role : '') + '<span class="iso">' + c.id + '</span></h2>' +
-        '<div class="hero">' + fmt(rr.value, '%') +
-        '<small>실질금리 · ' + (rr.year || '연도 없음') + ' · 동료중앙값 ' +
+      const role = c.role === 'buffer' ? ' · 완충' : '';
+      const tilt = (c.sides && c.sides.tilt) || 'unknown';
+      const tiltTag = TILT_KO[tilt] ? '<span class="tilt-tag tilt-' + tilt + '">' + tilt + ' · ' + TILT_KO[tilt] + '</span>' : '';
+      return '<article class="card ' + (c.role || '') + (TILT_KO[tilt] ? ' tilt-' + tilt : '') + '" role="listitem">' +
+        '<h2>' + c.name + role + '<span class="iso">' + c.id + '</span></h2>' +
+        tiltTag +
+        '<div class="hero" title="' + TIPS.real_rate + '"><span class="vv">' + fmt(rr.value, '%') + '</span>' +
+        '<small>' + LABELS.real_rate + ' · ' + (rr.year || '연도 없음') + ' · 표시국 중앙값 ' +
         (benches.real_rate && benches.real_rate.peer_median != null ? benches.real_rate.peer_median.toFixed(2) + '%' : '—') +
         '</small></div>' +
         spark(rr.spark) + bar(rr.value, 'real_rate') +
         '<div class="rows">' + extras + '</div>' +
-        '<div class="dual"><p class="c"><strong>채권자</strong>' + c.sides.creditor +
-        '</p><p class="d"><strong>채무자</strong>' + c.sides.debtor + '</p></div>' +
-        '<button type="button" class="ask" data-q="' + c.name + ' 실질금리">이 나라로 묻기</button></article>';
+        '<div class="dual"><p class="c"><strong>채권자 creditor</strong>' + clean(c.sides.creditor) +
+        '</p><p class="d"><strong>채무자 debtor</strong>' + clean(c.sides.debtor) + '</p></div>' +
+        '<button type="button" class="ask" data-q="' + c.name + ' 실질금리" aria-label="' + c.name + ' 실질금리를 질문창에 넣기">이 나라로 묻기</button></article>';
     };
+
+    const sortCards = (cards) => [...cards].sort((a, b) => {
+      const av = a.metrics.real_rate.value, bv = b.metrics.real_rate.value;
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return bv - av;
+    });
 
     const load = async () => {
       try {
@@ -143,16 +254,21 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || res.status);
         benches = data.benchmarks || {};
-        $vintage.textContent = (data.vintage_note || '') + ' ' + (data.benchmark_note || '');
+        $vintage.textContent = '실질금리 내림차순 정렬. 자료는 World Bank 연간치라 후행한다.';
+        $vintageDetail.textContent = data.vintage_note || '';
+        $benchDetail.textContent = data.benchmark_note || '';
         const mk = data.market || {};
         const bits = [];
         if (mk.us_10y) bits.push('<span>미국 10년 <b>' + mk.us_10y.price.toFixed(2) + '%</b></span>');
         if (mk.us_3m) bits.push('<span>미국 3개월 <b>' + mk.us_3m.price.toFixed(2) + '%</b></span>');
-        if (mk.us_curve) bits.push('<span>' + mk.us_curve.label + ' <b>' + mk.us_curve.value + '</b></span>');
-        if (bits.length) { $market.hidden = false; $market.innerHTML = bits.join('') + '<span class="badge">' + (mk.source || '') + '</span>'; }
-        $grid.innerHTML = (data.cards || []).map(cardHtml).join('');
+        if (mk.us_curve) bits.push('<span>US Yield Curve(10Y−3M) <b>' + mk.us_curve.value + 'pp</b></span>');
+        if (bits.length) { $market.hidden = false; $marketBits.innerHTML = bits.join(''); }
+        if (mk.source) $marketSrc.textContent = '시장 시세 출처: ' + mk.source;
+        $grid.innerHTML = sortCards(data.cards || []).map(cardHtml).join('');
+        $skeleton.hidden = true;
       } catch (err) {
-        $vintage.innerHTML = '<span class="err">계기판 실패: ' + err.message + '</span>';
+        $skeleton.hidden = true;
+        $vintage.innerHTML = '<span class="err">계기판을 불러오지 못했다: ' + err.message + ' — 잠시 후 새로고침해 보라.</span>';
       }
     };
 
@@ -166,7 +282,7 @@
       const text = $in.value.trim();
       if (!text) return;
       ctl = new AbortController();
-      $go.disabled = true; $cancel.hidden = false; $out.textContent = '…';
+      $go.disabled = true; $cancel.hidden = false; $out.textContent = '생각하는 중… (최대 65초, 취소 가능)';
       try {
         const res = await fetch('/api/chat', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -174,10 +290,10 @@
           signal: AbortSignal.any([ctl.signal, AbortSignal.timeout(65000)])
         });
         const data = await res.json();
-        $out.textContent = res.ok ? (data.reply || '(빈 응답)') : ('오류 ' + res.status + ': ' + (data.error || ''));
+        $out.textContent = res.ok ? (data.reply || '(빈 응답)') : ('오류 ' + res.status + ': ' + (data.error || '알 수 없는 오류'));
       } catch (err) {
         $out.textContent = (err.name === 'TimeoutError' || err.name === 'AbortError')
-          ? '취소됐거나 시간이 초과됐다.' : ('요청 실패: ' + err.message);
+          ? '취소됐거나 시간이 초과됐다(65초). 다시 시도해 보라.' : ('요청 실패: ' + err.message);
       } finally { $go.disabled = false; $cancel.hidden = true; ctl = null; }
     });
     $cancel.addEventListener('click', () => { if (ctl) ctl.abort(); });
