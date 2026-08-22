@@ -42,6 +42,8 @@ YF_SYMBOLS = {
     "us_3m": "^IRX",
 }
 
+BIS_POL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/M.{iso2}?lastNObservations=4&format=csv"
+
 _CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
 _TTL = 600.0
 
@@ -99,6 +101,35 @@ def _yahoo_last(symbol: str) -> dict[str, Any] | None:
     return {"symbol": symbol, "price": float(price), "spark": spark}
 
 
+def _bis_policy(iso2: str) -> dict[str, Any] | None:
+    import csv
+    import io
+
+    url = BIS_POL.format(iso2=iso2)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/csv"})
+        with urllib.request.urlopen(req, timeout=10.0) as res:
+            raw = res.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, TimeoutError):
+        return None
+    rows = list(csv.DictReader(io.StringIO(raw)))
+    if not rows:
+        return None
+    last = rows[-1]
+    try:
+        return {
+            "year": last.get("TIME_PERIOD"),
+            "value": float(last["OBS_VALUE"]),
+            "label": "정책금리",
+            "layer": "short",
+            "unit": "%",
+            "code": "BIS.WS_CBPOL",
+            "spark": [float(r["OBS_VALUE"]) for r in rows if r.get("OBS_VALUE")],
+        }
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
 def _latest(points: list[dict[str, Any]]) -> dict[str, Any] | None:
     return points[-1] if points else None
 
@@ -140,6 +171,8 @@ def build_board() -> dict[str, Any]:
     with ThreadPoolExecutor(max_workers=8) as pool:
         futs = {pool.submit(_wb_series, spec["code"]): key for key, spec in INDICATORS.items()}
         futs.update({pool.submit(_yahoo_last, sym): name for name, sym in YF_SYMBOLS.items()})
+        futs.update({pool.submit(_bis_policy, c["id"]): f"bis:{c['id']}" for c in COUNTRIES})
+        bis: dict[str, Any] = {}
         for fut in as_completed(futs):
             name = futs[fut]
             try:
@@ -148,6 +181,8 @@ def build_board() -> dict[str, Any]:
                 val = None
             if name in YF_SYMBOLS:
                 yf[name] = val
+            elif name.startswith("bis:"):
+                bis[name.split(":", 1)[1]] = val
             else:
                 wb[name] = val or {}
 
@@ -166,6 +201,19 @@ def build_board() -> dict[str, Any]:
                 "year": last["year"] if last else None,
                 "value": last["value"] if last else None,
                 "spark": [p["value"] for p in pts],
+            }
+        pol = bis.get(c["id"])
+        if pol:
+            metrics["policy_rate"] = pol
+        else:
+            metrics["policy_rate"] = {
+                "label": "정책금리",
+                "layer": "short",
+                "unit": "%",
+                "code": "BIS.WS_CBPOL",
+                "year": None,
+                "value": None,
+                "spark": [],
             }
         rr = metrics["real_rate"]["value"]
         cards.append({**c, "metrics": metrics, "sides": _side(rr)})

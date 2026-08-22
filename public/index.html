@@ -70,7 +70,7 @@
       <div class="row">
         <button type="button" id="go">보내기</button>
         <button type="button" id="cancel" hidden>취소</button>
-        <span class="badge">규칙 초안. 매매 아님. 에이전트는 연결 중.</span>
+        <span class="badge">AI가 생성한 결과일 수 있다. 매매 아님.</span>
       </div>
       <div id="out" role="status" aria-live="polite"></div>
     </section>
@@ -117,7 +117,7 @@
     };
     const cardHtml = (c) => {
       const m = c.metrics, rr = m.real_rate;
-      const extras = ['inflation','gdp_growth','productivity','gov_debt'].map((k) => {
+      const extras = ['policy_rate','inflation','gdp_growth','productivity','gov_debt'].map((k) => {
         const x = m[k];
         const d = x.vs_peer;
         const mark = d == null ? '' : (d >= 0 ? ' +' : ' ') + d.toFixed(1);

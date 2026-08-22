@@ -1,4 +1,5 @@
-# Slice 1: process boots. MAF pins go in on the agent slice.
 fastapi==0.116.1
 uvicorn==0.35.0
 gunicorn==23.0.0
+agent-framework==1.15.0
+agent-framework-github-copilot==1.0.3
