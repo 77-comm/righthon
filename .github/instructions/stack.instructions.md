@@ -38,10 +38,10 @@ MAF 에이전트이면서 Copilot SDK를 쓰는 공식 래퍼다. 여기에 **Az
 > 🔴 **14:45 원인 정정 — B1이 아니라 PyPI가 문제다.**
 > 래퍼 1.0.3이 핀한 `github-copilot-sdk==1.0.2`가 **PyPI에서 소멸**(1.0.4+만 생존) →
 > requirements.txt에 MAF를 넣으면 **어떤 pip에서도 ResolutionImpossible** → Oryx 빌드 사망(503)은 그 증상.
-> **해법(적용됨):** `deploy-py.sh`가 리눅스 cp312 wheel을 `packages/`에 조립해 zip 동봉.
-> `agent-framework-core==1.15.0` + `github-copilot-sdk==1.0.4` 정상 설치, 래퍼는 `--no-deps`.
-> 맥 venv에서 1.0.4+래퍼 조합 import·생성 검증 완료. `main.py`가 sys.path에 packages/를 얹는다.
-> **requirements.txt에는 fastapi/uvicorn/gunicorn 3개만 남긴다(Oryx 담당). MAF를 되넣지 마라.**
+> **해법:** `./deploy-py.sh` — `packages/.ready`가 없으면 **한 번만** pip, 있으면 `reusing packages/` 하고 바로 zip.
+> 다른 세션 배포가 진행 중이면 exit 2. `PACKAGES_REBUILD=1`만 재조립.
+> `packages/`는 gitignore. 맥마다 한 번 만들면 된다(~26MB).
+> **requirements.txt에는 fastapi/uvicorn/gunicorn 3개만. MAF를 되넣지 마라.**
 > 메타패키지 `agent-framework==1.15.0`([all] 익스트라)도 크로스플랫폼 해석이 깨진다 — **core만** 써라.
 
 ```
